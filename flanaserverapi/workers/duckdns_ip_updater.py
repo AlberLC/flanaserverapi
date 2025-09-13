@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 import aiohttp
 
@@ -19,7 +18,7 @@ async def update_ip():
 async def run_ip_updater():
     while True:
         await update_ip()
-        time.sleep(config.duckdns_ip_updater_sleep)
+        await asyncio.sleep(config.duckdns_ip_updater_sleep)
 
 
 if __name__ == '__main__':
