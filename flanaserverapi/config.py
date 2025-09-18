@@ -25,7 +25,7 @@ class Config(BaseSettings):
     flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
     subdomain: str | None = None
 
-    model_config = SettingsConfigDict(env_file=Path(__file__).resolve().parent.parent / '.env')
+    model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
 
     def model_post_init(self, _context: Any = None):
         self.duckdns_ip_updater_endpoint = self.duckdns_ip_updater_endpoint_template.format(
