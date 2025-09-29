@@ -7,6 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Config(BaseSettings):
     api_host: str | None = None
     api_port: int | None = None
+    audio_thumbnail_name: str = 'audio_thumbnail.jpg'
+    default_reslution: tuple[int, int] = (1280, 720)
+    default_thumbnail_name: str = 'default_thumbnail.webp'
     duckdns_ip_updater_endpoint: str | None = None
     duckdns_ip_updater_endpoint_template: str = (
         'https://www.duckdns.org/update?domains={subdomain}&token={duckdns_token}&ip='
@@ -27,7 +30,9 @@ class Config(BaseSettings):
     flanatrigo_zip_name: str = 'FlanaTrigo.zip'
     flanatrigo_zip_path: Path = flanatrigo_path / flanatrigo_zip_name
     flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
+    open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     subdomain: str | None = None
+    thumbnail_second: int = 1
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
 
