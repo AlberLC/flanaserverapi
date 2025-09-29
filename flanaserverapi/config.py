@@ -15,6 +15,7 @@ class Config(BaseSettings):
     duckdns_ip_updater_sleep: float = 5 * 60
     duckdns_token: str | None = None
     static_path: Path = Path('static')
+    files_path: Path = static_path / 'files'
     flanaarena_path: Path = static_path / 'flanaarena'
     flanaarena_zip_name: str = 'FlanaArena.zip'
     flanaarena_zip_path: Path = flanaarena_path / flanaarena_zip_name
