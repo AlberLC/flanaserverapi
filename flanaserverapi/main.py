@@ -1,10 +1,11 @@
 import uvicorn
 from fastapi import FastAPI
 
-from api.routers import flanacs, flanatrigo
+from api.routers import flanaarena, flanacs, flanatrigo
 from config import config
 
 app = FastAPI()
+app.include_router(flanaarena.router)
 app.include_router(flanacs.router)
 app.include_router(flanatrigo.router)
 

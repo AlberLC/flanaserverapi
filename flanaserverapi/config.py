@@ -15,11 +15,14 @@ class Config(BaseSettings):
     duckdns_ip_updater_sleep: float = 5 * 60
     duckdns_token: str | None = None
     static_path: Path = Path('static')
+    flanaarena_path: Path = static_path / 'flanaarena'
+    flanaarena_zip_name: str = 'FlanaArena.zip'
+    flanaarena_zip_path: Path = flanaarena_path / flanaarena_zip_name
     flanacs_path: Path = static_path / 'flanacs'
-    flanatrigo_path: Path = static_path / 'flanatrigo'
     flanacs_zip_name: str = 'FlanaCS.zip'
     flanacs_zip_path: Path = flanacs_path / flanacs_zip_name
     flanacs_zip_path_old: Path = flanacs_path / 'FlanaCS_old.zip'
+    flanatrigo_path: Path = static_path / 'flanatrigo'
     flanatrigo_zip_name: str = 'FlanaTrigo.zip'
     flanatrigo_zip_path: Path = flanatrigo_path / flanatrigo_zip_name
     flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
