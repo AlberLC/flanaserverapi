@@ -160,3 +160,6 @@ private.key
 
 # Zips
 *.zip
+
+# Static files
+static
