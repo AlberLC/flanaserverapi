@@ -32,7 +32,6 @@ class Config(BaseSettings):
     flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     subdomain: str | None = None
-    thumbnail_second: int = 1
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
 

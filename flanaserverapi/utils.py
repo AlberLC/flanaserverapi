@@ -33,11 +33,9 @@ def get_video_resolution(file_path: str | pathlib.Path) -> tuple[int, int]:
         return width, height
 
 
-def get_video_thumbnail(file_path: str | pathlib.Path, second: int) -> bytes:
+def get_video_thumbnail(file_path: str | pathlib.Path) -> bytes:
     cmd = [
         'ffmpeg',
-        '-ss',
-        f'00:00:{second}',
         '-i',
         str(file_path),
         '-vframes',

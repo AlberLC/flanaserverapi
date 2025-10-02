@@ -92,7 +92,7 @@ async def thumbnail(file_name: str):
         raise HTTPException(status_code=400, detail='Thumbnail only available for videos')
 
     try:
-        thumbnail_bytes = utils.get_video_thumbnail(file_path, config.thumbnail_second)
+        thumbnail_bytes = utils.get_video_thumbnail(file_path)
     except RuntimeError:
         raise HTTPException(status_code=500, detail='Error generating thumbnail')
 
