@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 import utils
 from config import config
@@ -8,8 +8,11 @@ router = APIRouter(prefix='/embeds', tags=['embeds'])
 
 
 @router.get('/{file_name}')
-async def embed_page(file_name: str, request: Request) -> HTMLResponse:
+async def embed_page(file_name: str, request: Request) -> Response:
     file_url = request.url_for('files', path=file_name)
+
+    if 'bot' not in request.headers.get('user-agent', '').lower():
+        return RedirectResponse(file_url)
 
     mime_type, main_type = utils.get_mime_type(file_name)
     og_type = config.open_graph_type_map.get(main_type, 'website')
@@ -51,6 +54,7 @@ async def embed_page(file_name: str, request: Request) -> HTMLResponse:
             )
         )
 
+    # This should not be visible to anyone, but some human user agents might contain the string 'bot' and might have skipped the initial redirect
     body_parts = [
         f'<h1>{file_name}</h1>',
         f'<p>Enlace directo: <a href="{file_url}">{file_url}</a></p>'
