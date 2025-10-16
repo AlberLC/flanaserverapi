@@ -1,19 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi import Request
+from fastapi.datastructures import URL
 
 import utils
 from config import config
+from exceptions import NotVideoFileError
 
-router = APIRouter(prefix='/embeds', tags=['embeds'])
 
-
-@router.get('/{file_name}')
-async def embed_page(file_name: str, request: Request) -> Response:
-    file_url = request.url_for('files', path=file_name)
-
-    if 'bot' not in request.headers.get('user-agent', '').lower():
-        return RedirectResponse(file_url)
-
+def generate_html(file_name: str, file_url: URL, request: Request) -> str:
     mime_type, main_type = utils.get_mime_type(file_name)
     og_type = config.open_graph_type_map.get(main_type, 'website')
 
@@ -62,42 +55,34 @@ async def embed_page(file_name: str, request: Request) -> Response:
 
     match main_type:
         case 'video':
-            body_parts.append(f"<video controls><source src='{file_url}' type='{mime_type}'></video>")
+            body_parts.append(f'<video controls><source src="{file_url}" type="{mime_type}"></video>')
         case 'audio':
-            body_parts.append(f"<audio controls><source src='{file_url}' type='{mime_type}'></audio>")
+            body_parts.append(f'<audio controls><source src="{file_url}" type="{mime_type}"></audio>')
         case 'image':
-            body_parts.append(f"<img src='{file_url}' alt='{file_name}' style='max-width:100%; height:auto;'>")
+            body_parts.append(f'<img src="{file_url}" alt="{file_name}" style="max-width:100%; height:auto;">')
 
     meta_tags_content = '\n'.join(meta_tags_parts)
     body_content = '\n'.join(body_parts)
 
-    html_content = f'''
-        <!DOCTYPE html>
-        <html lang='es'>
-        <head>
-        {meta_tags_content}
-        </head>
-        <body>
-        {body_content}
-        </body>
-        </html>
-    '''
-
-    return HTMLResponse(content=html_content)
+    return f'''
+            <!DOCTYPE html>
+            <html lang='es'>
+            <head>
+            {meta_tags_content}
+            </head>
+            <body>
+            {body_content}
+            </body>
+            </html>
+        '''
 
 
-@router.get('/thumbnail/{file_name}')
-async def thumbnail(file_name: str):
+def get_video_thumbnail(file_name: str) -> bytes:
     file_path = config.files_path / file_name
 
     _, main_type = utils.get_mime_type(file_name)
 
     if main_type != 'video':
-        raise HTTPException(status_code=400, detail='Thumbnail only available for videos')
+        raise NotVideoFileError
 
-    try:
-        thumbnail_bytes = utils.get_video_thumbnail(file_path)
-    except RuntimeError:
-        raise HTTPException(status_code=500, detail='Error generating thumbnail')
-
-    return HTMLResponse(content=thumbnail_bytes, media_type='image/png')
+    return utils.get_video_thumbnail(file_path)

@@ -1,12 +1,13 @@
 import mimetypes
-import pathlib
 import subprocess
+from pathlib import Path
 
 from config import config
+from exceptions import ThumbnailError
 
 
-def get_mime_type(file_path: str | pathlib.Path) -> tuple[str, str]:
-    mime_type, _ = mimetypes.guess_type(str(file_path))
+def get_mime_type(file: str | Path) -> tuple[str, str]:
+    mime_type, _ = mimetypes.guess_type(str(file))
 
     if not mime_type:
         mime_type = 'application/octet-stream'
@@ -14,7 +15,7 @@ def get_mime_type(file_path: str | pathlib.Path) -> tuple[str, str]:
     return mime_type, mime_type.split('/')[0]
 
 
-def get_video_resolution(file_path: str | pathlib.Path) -> tuple[int, int]:
+def get_video_resolution(file_path: str | Path) -> tuple[int, int]:
     cmd = [
         'ffprobe',
         '-v', 'error',
@@ -28,12 +29,12 @@ def get_video_resolution(file_path: str | pathlib.Path) -> tuple[int, int]:
         output = subprocess.check_output(cmd, text=True).strip()
         width, height = (int(size) for size in output.split('x'))
     except (ValueError, subprocess.CalledProcessError):
-        return config.default_reslution
+        return config.default_resolution
     else:
         return width, height
 
 
-def get_video_thumbnail(file_path: str | pathlib.Path) -> bytes:
+def get_video_thumbnail(file_path: str | Path) -> bytes:
     cmd = [
         'ffmpeg',
         '-i',
@@ -48,7 +49,6 @@ def get_video_thumbnail(file_path: str | pathlib.Path) -> bytes:
     ]
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, check=True)
-        return proc.stdout
+        return subprocess.run(cmd, capture_output=True, check=True).stdout
     except subprocess.CalledProcessError as e:
-        raise RuntimeError('Error generating thumbnail') from e
+        raise ThumbnailError from e
