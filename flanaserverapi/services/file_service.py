@@ -71,7 +71,7 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
     files_metadata = json.loads(config.files_metadata_path.read_text())
     updated_files_metadata = {}
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.datetime.now(datetime.timezone.utc)
 
     for file_name, file_info_data in files_metadata.items():
         file_info = FileInfo(**file_info_data)
@@ -107,7 +107,7 @@ async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     if expires_in is None:
         expires_at = None
     else:
-        expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=expires_in)
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=expires_in)
 
     file_info = FileInfo(
         file_name=file_name,

@@ -1,5 +1,4 @@
 import asyncio
-from typing import Never
 
 import aiohttp
 
@@ -16,7 +15,7 @@ async def update_ip() -> None:
         print(f'{config.duckdns_ip_updater_error_message}: {e}')
 
 
-async def run_ip_updater() -> Never:
+async def run_ip_updater() -> None:
     while True:
         await update_ip()
         await asyncio.sleep(config.duckdns_ip_updater_sleep)
