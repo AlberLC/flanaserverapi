@@ -1,11 +1,12 @@
 import asyncio
+from typing import Never
 
 import aiohttp
 
 from config import config
 
 
-async def update_ip():
+async def update_ip() -> None:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(config.duckdns_ip_updater_endpoint) as response:
@@ -15,11 +16,7 @@ async def update_ip():
         print(f'{config.duckdns_ip_updater_error_message}: {e}')
 
 
-async def run_ip_updater():
+async def run_ip_updater() -> Never:
     while True:
         await update_ip()
         await asyncio.sleep(config.duckdns_ip_updater_sleep)
-
-
-if __name__ == '__main__':
-    asyncio.run(run_ip_updater())
