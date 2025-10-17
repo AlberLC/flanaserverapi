@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 import shutil
+import urllib.parse
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -17,8 +18,8 @@ async def clean_up_old_files() -> None:
         pass
 
 
-async def delete_file(file_name: str | Path) -> None:
-    file_path = config.files_path / Path(file_name).name
+async def delete_file(file_name: str) -> None:
+    file_path = config.files_path / Path(urllib.parse.unquote(file_name)).name
 
     if not file_path.is_file():
         raise FileNotFoundError(f'Archivo `{file_name}` no encontrado')
@@ -96,7 +97,7 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
-    file_name = Path(file.filename).name
+    file_name = Path(urllib.parse.unquote(file.filename)).name
 
     file_path = config.files_path / file_name
 
