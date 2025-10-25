@@ -163,3 +163,6 @@ private.key
 
 # Static files
 static
+
+#Files metadata
+files_metadata.json
