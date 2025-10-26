@@ -19,7 +19,11 @@ async def clean_up_old_files() -> None:
 
 
 async def delete_file(file_name: str) -> None:
-    file_path = config.files_path / Path(urllib.parse.unquote(file_name)).name
+    file_path = (
+        config.files_path
+        /
+        Path(urllib.parse.unquote(file_name).translate(config.url_unsafe_characters_translation)).name
+    )
 
     if not file_path.is_file():
         raise FileNotFoundError(f'Archivo `{file_name}` no encontrado')
@@ -97,7 +101,7 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
-    file_name = Path(urllib.parse.unquote(file.filename)).name
+    file_name = Path(urllib.parse.unquote(file.filename).translate(config.url_unsafe_characters_translation)).name
 
     file_path = config.files_path / file_name
 
