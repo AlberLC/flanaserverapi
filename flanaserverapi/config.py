@@ -63,10 +63,6 @@ class Config(DuckDNSSettings, PathSettings):
     files_max_storage_size: int = 20_000_000_000
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     upload_max_size: int = 3_000_000_000
-    url_unsafe_characters: str = ' #'
-    url_unsafe_characters_translation: dict[int, str] = str.maketrans(
-        {character: '_' for character in url_unsafe_characters}
-    )
 
 
 config = Config()

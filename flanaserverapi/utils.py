@@ -1,5 +1,6 @@
 import mimetypes
 import subprocess
+import urllib.parse
 from pathlib import Path
 
 from config import config
@@ -52,3 +53,12 @@ def get_video_thumbnail(file_path: str | Path) -> bytes:
         return subprocess.run(cmd, capture_output=True, check=True).stdout
     except subprocess.CalledProcessError as e:
         raise ThumbnailError from e
+
+
+def normalize_file_name(file_name: str) -> str:
+    file_name_path = Path(file_name)
+    return f'{replace_non_alpha_with_underscore(file_name_path.stem)}{file_name_path.suffix}'
+
+
+def replace_non_alpha_with_underscore(text: str) -> str:
+    return ''.join(character if character.isalpha() else '_' for character in urllib.parse.unquote(text))
