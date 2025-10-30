@@ -2,13 +2,12 @@ import asyncio
 import datetime
 import json
 import shutil
-import urllib.parse
 from collections.abc import AsyncIterator
-from pathlib import Path
 
 import fastapi.encoders
 from fastapi import UploadFile
 
+import utils
 from api.schemas.file_info import FileInfo
 from config import config
 
@@ -19,11 +18,7 @@ async def clean_up_old_files() -> None:
 
 
 async def delete_file(file_name: str) -> None:
-    file_path = (
-        config.files_path
-        /
-        Path(urllib.parse.unquote(file_name).translate(config.url_unsafe_characters_translation)).name
-    )
+    file_path = config.files_path / utils.normalize_file_name(file_name)
 
     if not file_path.is_file():
         raise FileNotFoundError(f'Archivo `{file_name}` no encontrado')
@@ -101,7 +96,7 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
-    file_name = Path(urllib.parse.unquote(file.filename).translate(config.url_unsafe_characters_translation)).name
+    file_name = utils.normalize_file_name(file.filename)
 
     file_path = config.files_path / file_name
 
