@@ -61,4 +61,15 @@ def normalize_file_name(file_name: str) -> str:
 
 
 def replace_non_alpha_with_underscore(text: str) -> str:
-    return ''.join(character if character.isalpha() else '_' for character in urllib.parse.unquote(text))
+    characters: list[str] = []
+    previous_was_underscore = False
+
+    for character in urllib.parse.unquote(text):
+        if character.isalpha():
+            characters.append(character)
+            previous_was_underscore = False
+        elif not previous_was_underscore:
+            characters.append('_')
+            previous_was_underscore = True
+
+    return ''.join(characters)
