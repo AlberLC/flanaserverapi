@@ -1,0 +1,12 @@
+[Unit]
+Description=FlanaServerWorker
+After=network.target
+
+[Service]
+User=flanauser
+WorkingDirectory=/opt/flanaserverapi/flanaserverapi
+Environment=PYTHONPATH=/opt/flanaserverapi/flanaserverapi
+ExecStart=/opt/flanaserverapi/.venv/bin/python -u workers/workers_main.py
+
+[Install]
+WantedBy=multi-user.target
