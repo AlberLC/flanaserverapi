@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ class DuckDNSSettings(AppSettings):
         'https://www.duckdns.org/update?domains={subdomain}&token={duckdns_token}&ip='
     )
     duckdns_ip_updater_error_message: str = 'Error updating IP'
-    duckdns_ip_updater_sleep: float = 5 * 60
+    duckdns_ip_updater_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     duckdns_token: str | None = None
 
     def model_post_init(self, _context: Any = None):
@@ -59,7 +60,7 @@ class PathSettings(AppSettings):
 
 class Config(DuckDNSSettings, PathSettings):
     default_resolution: tuple[int, int] = (1280, 720)
-    files_cleaner_sleep: int = 5 * 60
+    files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     upload_max_size: int = 3_000_000_000
