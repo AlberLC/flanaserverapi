@@ -97,7 +97,6 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     file_name = utils.normalize_file_name(file.filename)
-
     file_path = config.files_path / file_name
 
     with open(file_path, 'wb') as new_file:
