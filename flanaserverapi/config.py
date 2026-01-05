@@ -50,12 +50,13 @@ class PathSettings(AppSettings):
     flanaarena_zip_path: Path = flanaarena_path / flanaarena_zip_name
 
     flanacs_path: Path = static_path / 'flanacs'
+    flanacs_version_path: Path = flanacs_path / 'version.txt'
     flanacs_zip_path: Path = flanacs_path / flanacs_zip_name
     flanacs_zip_path_old: Path = flanacs_path / 'FlanaCS_old.zip'
 
     flanatrigo_path: Path = static_path / 'flanatrigo'
-    flanatrigo_zip_path: Path = flanatrigo_path / flanatrigo_zip_name
     flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
+    flanatrigo_zip_path: Path = flanatrigo_path / flanatrigo_zip_name
 
 
 class Config(DuckDNSSettings, PathSettings):
