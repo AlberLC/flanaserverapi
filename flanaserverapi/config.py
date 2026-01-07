@@ -61,6 +61,7 @@ class PathSettings(AppSettings):
 
 class Config(DuckDNSSettings, PathSettings):
     default_resolution: tuple[int, int] = (1280, 720)
+    file_not_found_message_error: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
