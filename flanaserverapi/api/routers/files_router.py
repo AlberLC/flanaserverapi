@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 
 from api.schemas.file_info import FileInfo
 from services import file_service
@@ -24,4 +24,4 @@ async def delete_file(file_name: str):
     try:
         await file_service.delete_file(file_name)
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
