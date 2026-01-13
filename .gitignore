@@ -144,7 +144,7 @@ cython_debug/
 
 #private keys and certs
 cert.pem
-private.key
+*private.key
 
 # PyCharm
 .idea
