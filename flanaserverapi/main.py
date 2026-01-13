@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -5,8 +7,16 @@ from fastapi.staticfiles import StaticFiles
 from api.middlewares.limit_upload_size_middleware import LimitUploadSizeMiddleware
 from api.routers import embeds_router, files_router, flanaarena_router, flanacs_router, flanatrigo_router
 from config import config
+from database import setup
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await setup.ensure_collections_exist()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(embeds_router.router)
 app.include_router(files_router.router)

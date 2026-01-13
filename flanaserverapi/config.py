@@ -29,6 +29,26 @@ class DuckDNSSettings(AppSettings):
         )
 
 
+class MongoSettings(AppSettings):
+    collections: dict[str, dict] = {
+        'apps': {
+            'validator': {
+                '$jsonSchema': {
+                    'bsonType': 'object',
+                    'required': ['_id', 'version'],
+                    'properties': {
+                        '_id': {'bsonType': 'string'},
+                        'version': {'bsonType': 'string', 'pattern': r'^\d+\.\d+\.\d+$'}
+                    }
+                }
+            }
+        }
+    }
+    database_name: str = 'flanaserverapi'
+    mongo_username: str | None = None
+    mongo_password: str | None = None
+
+
 class PathSettings(AppSettings):
     audio_thumbnail_name: str = 'audio_thumbnail.jpg'
     default_thumbnail_name: str = 'default_thumbnail.webp'
@@ -44,23 +64,19 @@ class PathSettings(AppSettings):
 
     static_path: Path = root_path / 'static'
 
+    apps_path: Path = static_path / 'apps'
+
+    flanaarena_zip_path: Path = apps_path / flanaarena_zip_name
+    flanacs_zip_path: Path = apps_path / flanacs_zip_name
+    flanacs_zip_path_old: Path = apps_path / 'FlanaCS_old.zip'
+    flanatrigo_zip_path: Path = apps_path / flanatrigo_zip_name
+
     files_path: Path = static_path / 'files'
 
-    flanaarena_path: Path = static_path / 'flanaarena'
-    flanaarena_zip_path: Path = flanaarena_path / flanaarena_zip_name
 
-    flanacs_path: Path = static_path / 'flanacs'
-    flanacs_version_path: Path = flanacs_path / 'version.txt'
-    flanacs_zip_path: Path = flanacs_path / flanacs_zip_name
-    flanacs_zip_path_old: Path = flanacs_path / 'FlanaCS_old.zip'
-
-    flanatrigo_path: Path = static_path / 'flanatrigo'
-    flanatrigo_version_path: Path = flanatrigo_path / 'version.txt'
-    flanatrigo_zip_path: Path = flanatrigo_path / flanatrigo_zip_name
-
-
-class Config(DuckDNSSettings, PathSettings):
+class Config(DuckDNSSettings, MongoSettings, PathSettings):
     default_resolution: tuple[int, int] = (1280, 720)
+    document_not_found_message_error: str = 'Document not found'
     file_not_found_message_error: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000

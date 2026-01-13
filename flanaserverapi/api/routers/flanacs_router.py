@@ -4,7 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, PlainTextResponse
 
+from api.dependencies.app_dependencies import get_app_exists
 from api.dependencies.file_dependencies import get_file_path
+from api.schemas.app import App
 from config import config
 
 router = APIRouter(prefix='/flanacs', tags=['flanacs'])
@@ -21,7 +23,5 @@ async def download_old(file_path: Annotated[Path, Depends(get_file_path(config.f
 
 
 @router.get('/version')
-async def get_version(
-    file_path: Annotated[Path, Depends(ensure_file_exists(config.flanacs_version_path))]
-) -> PlainTextResponse:
-    return PlainTextResponse(file_path.read_text().strip())
+async def get_version(app: Annotated[App, Depends(get_app_exists)]) -> PlainTextResponse:
+    return PlainTextResponse(app['version'])

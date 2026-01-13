@@ -4,7 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, PlainTextResponse
 
+from api.dependencies.app_dependencies import get_app_exists
 from api.dependencies.file_dependencies import get_file_path
+from api.schemas.app import App
 from config import config
 
 router = APIRouter(prefix='/flanatrigo', tags=['flanatrigo'])
