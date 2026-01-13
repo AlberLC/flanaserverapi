@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from config import config
 
 
-def ensure_file_exists(path: str | Path) -> Callable[[], Path]:
+def get_file_path(path: str | Path) -> Callable[[], Path]:
     path = Path(path)
 
     def dependency() -> Path:
