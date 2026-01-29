@@ -1,13 +1,13 @@
 from fastapi import Request
 from fastapi.datastructures import URL
 
-import utils
 from config import config
 from exceptions import NotVideoFileError
+from utils import files
 
 
 def generate_html(file_name: str, file_url: URL, request: Request) -> str:
-    mime_type, main_type = utils.get_mime_type(file_name)
+    mime_type, main_type = files.get_mime_type(file_name)
     og_type = config.open_graph_type_map.get(main_type, 'website')
 
     match main_type:
@@ -30,7 +30,7 @@ def generate_html(file_name: str, file_url: URL, request: Request) -> str:
     ]
 
     if main_type == 'video':
-        width, height = utils.get_video_resolution(config.files_path / file_name)
+        width, height = files.get_video_resolution(config.files_path / file_name)
         meta_tags_parts.extend(
             (
                 f'<meta property="og:video" content="{file_url}" />',
@@ -80,9 +80,9 @@ def generate_html(file_name: str, file_url: URL, request: Request) -> str:
 def get_video_thumbnail(file_name: str) -> bytes:
     file_path = config.files_path / file_name
 
-    _, main_type = utils.get_mime_type(file_name)
+    _, main_type = files.get_mime_type(file_name)
 
     if main_type != 'video':
         raise NotVideoFileError
 
-    return utils.get_video_thumbnail(file_path)
+    return files.get_video_thumbnail(file_path)
