@@ -64,6 +64,10 @@ class PathSettings(AppSettings):
 
     resources_path: Path = root_path / 'resources'
 
+    images_path: Path = resources_path / 'images'
+    audio_thumbnail_path: Path = images_path / 'audio_thumbnail.jpg'
+    default_thumbnail_path: Path = images_path / 'default_thumbnail.webp'
+
     files_metadata_path: Path = resources_path / 'files_metadata.json'
 
     static_path: Path = root_path / 'static'
