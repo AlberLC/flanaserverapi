@@ -97,9 +97,9 @@ async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     file_name = files.normalize_file_name(file.filename)
-    file_path = config.files_path / file_name
+    new_file_path = config.files_path / file_name
 
-    with open(file_path, 'wb') as new_file:
+    with open(new_file_path, 'wb') as new_file:
         # noinspection PyTypeChecker
         await asyncio.to_thread(shutil.copyfileobj, file.file, new_file)
 
@@ -112,7 +112,7 @@ async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
         file_name=file_name,
         url=f'/files/{file_name}',
         embed_url=f'/embeds/{file_name}',
-        size=file_path.stat().st_size,
+        size=new_file_path.stat().st_size,
         content_type=file.content_type,
         expires_at=expires_at
     )
