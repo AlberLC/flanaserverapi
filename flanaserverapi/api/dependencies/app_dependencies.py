@@ -36,14 +36,18 @@ async def get_app_monitor(app_id: AppId, http_connection: HTTPConnection) -> App
     return http_connection.app.state.app_monitors[app_id]
 
 
-def get_app_zip_path(app_id: AppId, release_type: ReleaseType | None = ReleaseType.LATEST) -> Path:
-    file_name_suffix = '_old' if release_type is ReleaseType.OLD else ''
-    path = config.apps_path / f'{config.app_names[app_id]}{file_name_suffix}.zip'
+def get_app_compressed_path(app_id: AppId, release_type: ReleaseType | None = ReleaseType.LATEST) -> Path:
+    stem_suffix = f'_{release_type.value}' if release_type is ReleaseType.OLD else ''
+    compressed_path = (
+        config.apps_path
+        /
+        f'{config.compressed_app_names[app_id]['stem']}{stem_suffix}{config.compressed_app_names[app_id]['suffix']}'
+    )
 
-    if not path.is_file():
+    if not compressed_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=config.file_not_found_message_error)
 
-    return path
+    return compressed_path
 
 
 async def get_http_client_context(

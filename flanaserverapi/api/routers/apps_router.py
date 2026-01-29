@@ -7,13 +7,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 
-from api.dependencies.app_dependencies import (
-    check_ip_not_blacklisted,
-    get_app,
-    get_app_monitor,
-    get_app_zip_path,
-    get_http_client_context
-)
+from api.dependencies.app_dependencies import (check_ip_not_blacklisted, get_app, get_app_compressed_path, get_app_monitor, get_http_client_context)
 from api.dependencies.http_dependencies import get_http_session, get_ip
 from api.schemas.app import App
 from api.schemas.app_installation_paths import AppInstallationPaths
@@ -31,8 +25,8 @@ router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
 @router.get('/download', dependencies=[Depends(check_ip_not_blacklisted)])
 @router.get('/download/{release_type}', dependencies=[Depends(check_ip_not_blacklisted)])
-async def download(zip_path: Annotated[Path, Depends(get_app_zip_path)]) -> FileResponse:
-    return FileResponse(zip_path, filename=zip_path.name)
+async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_path)]) -> FileResponse:
+    return FileResponse(compressed_path, filename=compressed_path.name)
 
 
 @router.get('/version')
@@ -62,7 +56,7 @@ async def register_installation_paths(
 
     client_connection.app_installation_paths = AppInstallationPaths(
         directory_paths=body['directory_paths'],
-        zip_paths=body['zip_paths']
+        compressed_paths=body['compressed_paths']
     )
     await client_connection_repository.update(client_connection)
 
