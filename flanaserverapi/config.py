@@ -85,7 +85,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     file_not_found_message_error: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
-    max_client_connections: int = 100
+    max_client_connections: int = 1000
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     private_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
     shutdown_ws_message: str = 'shutdown'

@@ -77,7 +77,8 @@ async def get_license(
     client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
 ) -> dict[str, str]:
     client_connection = await client_connection_repository.insert(
-        ClientConnection(app_id=app_id, system_info=client_context.system_info)
+        ClientConnection(app_id=app_id, system_info=client_context.system_info),
+        limit=config.max_client_connections
     )
 
     license_ = license_service.generate_license(app, client_context)
