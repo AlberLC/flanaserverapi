@@ -1,7 +1,7 @@
 import base64
 import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,7 +12,7 @@ class AppSettings(BaseSettings):
     api_port: int | None = None
     subdomain: str | None = None
 
-    model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
+    model_config = SettingsConfigDict(extra='ignore', env_file=Path(__file__).parent.parent / '.env')
 
 
 class DuckDNSSettings(AppSettings):
@@ -22,23 +22,36 @@ class DuckDNSSettings(AppSettings):
     duckdns_key: str | None = None
 
 
+class IpGeolocationSettings(AppSettings):
+    ip_geolocation_endpoint: str = 'https://api.ipgeolocation.io/v2/ipgeo'
+    ip_geolocation_key: str | None = None
+
 
 class MongoSettings(AppSettings):
     collections: dict[str, dict] = {
-        'apps': {
+        'app': {
             'validator': {
                 '$jsonSchema': {
                     'bsonType': 'object',
-                    'required': ['_id', 'version'],
+                    'required': ['_id'],
                     'properties': {
                         '_id': {'bsonType': 'string'},
-                        'version': {'bsonType': 'string', 'pattern': r'^\d+\.\d+\.\d+$'}
+                        'version': {'bsonType': ['null', 'string'], 'pattern': r'^\d+\.\d+\.\d+$'}
                     }
                 }
             }
         }
     }
     database_name: str = 'flanaserverapi'
+    indexes: dict[str, list[dict]] = {
+        'cached_ip_geolocation': [
+            {
+                'name': 'created_at_1',
+                'keys': 'created_at',
+                'expireAfterSeconds': datetime.timedelta(days=1).total_seconds()
+            }
+        ]
+    }
     mongo_username: str | None = None
     mongo_password: str | None = None
 
@@ -58,16 +71,22 @@ class PathSettings(AppSettings):
     files_path: Path = static_path / 'files'
 
 
-class Config(DuckDNSSettings, MongoSettings, PathSettings):
+class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
+    app_monitor_sleep: float = datetime.timedelta(seconds=1).total_seconds()
     app_names: dict[str, str] = {'flanaarena': 'FlanaArena', 'flanacs': 'FlanaCS', 'flanatrigo': 'FlanaTrigo'}
+    bytes_media_type: str = 'application/octet-stream'
+    client_connection_not_found_message_error: str = 'ClientConnection not found'
     default_resolution: tuple[int, int] = (1280, 720)
     document_not_found_message_error: str = 'Document not found'
     file_not_found_message_error: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
+    max_client_connections: int = 100
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     private_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
+    shutdown_ws_message: str = 'shutdown'
     symmetric_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
+    system_info_identifying_attributes: tuple[str, ...] = ('username', 'hostname', 'mac_address', 'ip_geolocation')
     upload_max_size: int = 3_000_000_000
 
 
