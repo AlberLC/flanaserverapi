@@ -16,19 +16,11 @@ class AppSettings(BaseSettings):
 
 
 class DuckDNSSettings(AppSettings):
-    duckdns_ip_updater_endpoint: str | None = None
-    duckdns_ip_updater_endpoint_template: str = (
-        'https://www.duckdns.org/update?domains={subdomain}&token={duckdns_token}&ip='
-    )
+    duckdns_ip_updater_endpoint: str = 'https://www.duckdns.org/update'
     duckdns_ip_updater_error_message: str = 'Error updating IP'
     duckdns_ip_updater_sleep: float = datetime.timedelta(minutes=5).total_seconds()
-    duckdns_token: str | None = None
+    duckdns_key: str | None = None
 
-    def model_post_init(self, _context: Any = None):
-        self.duckdns_ip_updater_endpoint = self.duckdns_ip_updater_endpoint_template.format(
-            subdomain=self.subdomain,
-            duckdns_token=self.duckdns_token
-        )
 
 
 class MongoSettings(AppSettings):
