@@ -14,7 +14,7 @@ async def update_ip(session: aiohttp.ClientSession) -> None:
         ) as response:
             if await response.text() != 'OK':
                 print(config.duckdns_ip_updater_error_message)
-    except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+    except (TimeoutError, aiohttp.ClientError) as e:
         print(f'{config.duckdns_ip_updater_error_message}: {e}')
 
 

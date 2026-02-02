@@ -12,7 +12,7 @@ class AppSettings(BaseSettings):
     api_port: int | None = None
     subdomain: str | None = None
 
-    model_config = SettingsConfigDict(extra='ignore', env_file=Path(__file__).parent.parent / '.env')
+    model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
 
 
 class DuckDNSSettings(AppSettings):
