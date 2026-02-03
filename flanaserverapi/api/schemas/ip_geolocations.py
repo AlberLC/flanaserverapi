@@ -6,9 +6,8 @@ from pydantic import BaseModel, Field
 
 class IpGeolocation(BaseModel):
     ip: str
-    location: dict[str, Any]
-    country_metadata: dict[str, Any]
-    currency: dict[str, str]
+    geojs_data: dict[str, Any] | None = None
+    ip_geolocation_data: dict[str, dict[str, Any]] | None = None
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, IpGeolocation) and self.ip == other.ip

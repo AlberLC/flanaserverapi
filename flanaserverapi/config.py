@@ -23,6 +23,7 @@ class DuckDNSSettings(AppSettings):
 
 
 class IpGeolocationSettings(AppSettings):
+    geojs_endpoint: str = 'https://get.geojs.io/v1/ip/geo.json'
     ip_geolocation_endpoint: str = 'https://api.ipgeolocation.io/v2/ipgeo'
     ip_geolocation_key: str | None = None
 
