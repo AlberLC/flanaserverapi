@@ -20,6 +20,11 @@ class License(BaseModel):
 class LicenseConfig(BaseModel):
     code: str | None = None
     duration: float = datetime.timedelta(days=3).total_seconds()
+    whitelisted_system_info_features: LicenseFeatures = Field(
+        default_factory=lambda: LicenseFeatures(
+            register_installation_paths=True
+        )
+    )
     default_features: LicenseFeatures = Field(
         default_factory=lambda: LicenseFeatures(
             register_installation_paths=True
