@@ -36,7 +36,7 @@ async def _get_ip_geolocation_data(session: aiohttp.ClientSession, ip: str) -> d
 
 
 async def get_ip_geolocation(session: aiohttp.ClientSession, ip: str) -> IpGeolocation | None:
-    if not ipaddress.ip_address(ip).is_global:
+    if ipaddress.ip_address(ip).is_private:
         return
 
     cached_ip_geolocation_repository = CachedIpGeolocationRepository()
