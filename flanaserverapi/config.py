@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class AppSettings(BaseSettings):
     api_host: str | None = None
     api_port: int | None = None
+    api_token: str | None = None
     subdomain: str | None = None
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')

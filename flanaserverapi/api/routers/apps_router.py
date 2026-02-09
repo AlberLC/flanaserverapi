@@ -1,16 +1,17 @@
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import aiohttp
+import pymongo
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 
 from api.dependencies.app_dependencies import (check_ip_not_blacklisted, get_app, get_app_compressed_path, get_app_monitor, get_http_client_context)
-from api.dependencies.http_dependencies import get_http_session, get_ip
+from api.dependencies.http_dependencies import check_bearer_token, get_http_session, get_ip
 from api.schemas.app import App
-from api.schemas.client_connection import ClientConnection
+from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
 from api.schemas.client_context import ClientContext
 from config import config
 from custom_types import AppId
@@ -20,6 +21,27 @@ from services.app_monitor import AppMonitor
 from utils import crypto, encoding
 
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
+
+
+@router.get('/client-connections/latest', dependencies=[Depends(check_bearer_token)])
+async def get_last_client_connections(
+    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)],
+    limit: int | None = None,
+    after_id: str | None = None
+) -> list[ClientConnectionSummary]:
+    filter_: dict[str, Any] = {'system_info.ip_geolocation.ip': {'$ne': None}}
+
+    if after_id:
+        filter_['_id'] = {'$gt': ObjectId(after_id)}
+
+    return [
+        ClientConnectionSummary.from_client_connection(last_client_connection)
+        for last_client_connection in await client_connection_repository.get(
+            filter_,
+            sort_keys=(('_id', pymongo.DESCENDING),),
+            limit=limit
+        )
+    ]
 
 
 @router.get('/download', dependencies=[Depends(check_ip_not_blacklisted)])
