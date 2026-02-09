@@ -1,98 +1,104 @@
 import asyncio
 import datetime
-import json
 import shutil
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 
-import fastapi.encoders
 from fastapi import UploadFile
 
 from api.schemas.file_info import FileInfo
 from config import config
+from database.repositories.file_info import FileInfoRepository
 from utils import files
 
 
-async def clean_up_old_files() -> None:
-    async for _ in iter_valid_files_metadata():
-        pass
+async def _delete_file_infos(file_info_repository: FileInfoRepository, file_infos: Iterable[FileInfo]) -> None:
+    ids_to_delete = []
+
+    for file_info in file_infos:
+        try:
+            await asyncio.to_thread((config.files_path / file_info.file_name).unlink, missing_ok=True)
+        except PermissionError:
+            pass
+
+        ids_to_delete.append(file_info.id)
+
+    if ids_to_delete:
+        await file_info_repository.delete({'_id': {'$in': ids_to_delete}})
+
+
+async def clean_up_old_files(file_info_repository: FileInfoRepository) -> None:
+    saved_file_names = set()
+
+    async for file_info in iter_valid_file_infos(file_info_repository):
+        saved_file_names.add(file_info.file_name)
+
+    for file_path in config.files_path.iterdir():
+        if (
+            not file_path.is_file()
+            or
+            (file_name := file_path.name) in config.protected_file_names
+            or
+            file_name in saved_file_names
+        ):
+            continue
+
+        try:
+            file_path.unlink()
+        except PermissionError:
+            pass
 
 
 async def delete_file(file_name: str) -> None:
     file_path = config.files_path / files.normalize_file_name(file_name)
 
     if not file_path.is_file():
-        raise FileNotFoundError(f'Archivo `{file_name}` no encontrado')
+        raise FileNotFoundError(f'Archivo {file_name} no encontrado')
 
     await asyncio.to_thread(file_path.unlink)
+    await FileInfoRepository().delete_one({'file_name': file_name})
 
 
-async def enforce_storage_limit() -> None:
-    used_storage = await get_used_storage()
+async def enforce_storage_limit(file_info_repository: FileInfoRepository) -> None:
+    used_storage = await get_used_storage(file_info_repository)
 
     if used_storage <= config.files_max_storage_size:
         return
 
-    files_metadata = json.loads(config.files_metadata_path.read_text())
-    # noinspection PyShadowingNames
-    files_info = sorted(
-        (FileInfo(**file_info_data) for file_info_data in files_metadata.values()),
-        key=lambda file_info: file_info.created_at
-    )
+    file_infos_to_delete = []
 
-    for file_info in files_info:
-        file_path = config.files_path / file_info.file_name
-
-        try:
-            await asyncio.to_thread(file_path.unlink)
-        except PermissionError:
-            continue
-
+    async for file_info in file_info_repository.iter_all(sort_keys=('created_at',)):
+        file_infos_to_delete.append(file_info)
         used_storage -= file_info.size
-        files_metadata.pop(file_info.file_name)
 
         if used_storage <= config.files_max_storage_size:
             break
 
-    config.files_metadata_path.write_text(json.dumps(files_metadata, indent=2))
+    await _delete_file_infos(file_info_repository, file_infos_to_delete)
 
 
-async def get_used_storage() -> int:
+async def get_used_storage(file_info_repository: FileInfoRepository) -> int:
     used_storage = 0
 
-    async for file_info in iter_valid_files_metadata():
+    async for file_info in iter_valid_file_infos(file_info_repository):
         used_storage += file_info.size
 
     return used_storage
 
 
-async def iter_valid_files_metadata() -> AsyncIterator[FileInfo]:
-    if not config.files_metadata_path.is_file():
-        config.files_metadata_path.write_text('{}')
-
-    files_metadata = json.loads(config.files_metadata_path.read_text())
-    updated_files_metadata = {}
+async def iter_valid_file_infos(file_info_repository: FileInfoRepository) -> AsyncIterator[FileInfo]:
     now = datetime.datetime.now(datetime.UTC)
+    file_infos_to_delete = []
 
-    for file_name, file_info_data in files_metadata.items():
-        file_info = FileInfo(**file_info_data)
-        file_path = config.files_path / file_name
+    async for file_info in file_info_repository.iter_all():
+        file_path = config.files_path / file_info.file_name
 
-        if not file_path.is_file():
+        if not file_path.is_file() or file_info.expires_at and now >= file_info.expires_at:
+            file_infos_to_delete.append(file_info)
             continue
-
-        if file_info.expires_at and now >= file_info.expires_at:
-            try:
-                await asyncio.to_thread(file_path.unlink)
-            except PermissionError:
-                pass
-            else:
-                continue
 
         yield file_info
 
-        updated_files_metadata[file_name] = file_info_data
-
-    config.files_metadata_path.write_text(json.dumps(updated_files_metadata, indent=2))
+    await _delete_file_infos(file_info_repository, file_infos_to_delete)
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
@@ -117,13 +123,11 @@ async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
         expires_at=expires_at
     )
 
-    if not config.files_metadata_path.is_file():
-        config.files_metadata_path.write_text('{}')
+    file_info_repository = FileInfoRepository()
 
-    files_metadata = json.loads(config.files_metadata_path.read_text())
-    files_metadata[file_name] = fastapi.encoders.jsonable_encoder(file_info)
-    config.files_metadata_path.write_text(json.dumps(files_metadata, indent=2))
+    await file_info_repository.delete_one({'file_name': file_info.file_name})
+    await file_info_repository.insert(file_info)
 
-    await enforce_storage_limit()
+    await enforce_storage_limit(file_info_repository)
 
     return file_info

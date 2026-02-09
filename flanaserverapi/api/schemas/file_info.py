@@ -1,9 +1,11 @@
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from api.schemas.bases import ObjectIdModel
 
 
-class FileInfo(BaseModel):
+class FileInfo(ObjectIdModel):
     file_name: str
     url: str
     embed_url: str

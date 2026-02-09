@@ -52,6 +52,17 @@ class MongoSettings(AppSettings):
                 'keys': 'created_at',
                 'expireAfterSeconds': datetime.timedelta(days=1).total_seconds()
             }
+        ],
+        'file_info': [
+            {
+                'name': 'created_at_1',
+                'keys': 'created_at'
+            },
+            {
+                'name': 'file_name_1',
+                'keys': 'file_name',
+                'unique': True
+            }
         ]
     }
     mongo_username: str | None = None
@@ -61,6 +72,7 @@ class MongoSettings(AppSettings):
 class PathSettings(AppSettings):
     audio_thumbnail_name: str = 'audio_thumbnail.jpg'
     default_thumbnail_name: str = 'default_thumbnail.webp'
+    protected_file_names: set[str] = {audio_thumbnail_name, default_thumbnail_name}
 
     root_path: Path = Path(__file__).parent
 
@@ -69,8 +81,6 @@ class PathSettings(AppSettings):
     images_path: Path = resources_path / 'images'
     audio_thumbnail_path: Path = images_path / 'audio_thumbnail.jpg'
     default_thumbnail_path: Path = images_path / 'default_thumbnail.webp'
-
-    files_metadata_path: Path = resources_path / 'files_metadata.json'
 
     static_path: Path = root_path / 'static'
     apps_path: Path = static_path / 'apps'
