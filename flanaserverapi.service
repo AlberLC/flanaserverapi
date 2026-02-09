@@ -5,8 +5,7 @@ After=network.target
 [Service]
 User=flanauser
 WorkingDirectory=/opt/flanaserverapi/flanaserverapi
-Environment=PYTHONPATH=/opt/flanaserverapi
-ExecStart=/opt/flanaserverapi/.venv/bin/gunicorn -b 0.0.0.0:5210 -w 4 -k ws_uvicorn_worker.WSUvicornWorker main:app
+ExecStart=/opt/flanaserverapi/.venv/bin/gunicorn -c /opt/flanaserverapi/gunicorn.conf.py main:app
 
 [Install]
 WantedBy=multi-user.target

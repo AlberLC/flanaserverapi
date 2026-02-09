@@ -1,3 +1,4 @@
+import multiprocessing
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -11,6 +12,7 @@ from api.middlewares.limit_upload_size_middleware import LimitUploadSizeMiddlewa
 from api.routers import apps_router, embeds_router, files_router, ping_router
 from config import config
 from database import database_setup
+from workers import workers_main
 
 
 @asynccontextmanager
@@ -33,4 +35,5 @@ app.mount('/files', StaticFiles(directory='static/files', check_dir=False), name
 app.add_middleware(LimitUploadSizeMiddleware, config.upload_max_size)
 
 if __name__ == '__main__':
+    multiprocessing.Process(target=workers_main.run, daemon=True).start()
     uvicorn.run('main:app', host=config.api_host, port=config.api_port, reload=True)
