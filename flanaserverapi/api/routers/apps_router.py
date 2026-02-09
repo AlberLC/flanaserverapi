@@ -89,7 +89,7 @@ async def get_license(
     }
 
 
-@router.websocket('/shutdown')
+@router.websocket('/ws/shutdown')
 async def wait_shutdown(
     websocket: WebSocket,
     session: Annotated[aiohttp.ClientSession, Depends(get_http_session)],
