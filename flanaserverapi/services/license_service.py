@@ -10,7 +10,10 @@ def generate_license(app: App, client_context: ClientContext) -> License:
 
     license_config = app.license_config
 
-    if client_context.system_info in app.blacklisted_system_infos:
+    if any(
+        client_context.system_info.equals_partially(blacklisted_system_info)
+        for blacklisted_system_info in app.blacklisted_system_infos
+    ):
         kwargs['features'] = license_config.blacklisted_system_info_features
     elif client_context.system_info in app.whitelisted_system_infos:
         kwargs['features'] = license_config.whitelisted_system_info_features
