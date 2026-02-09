@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
@@ -13,11 +14,11 @@ from database import database_setup
 
 
 @asynccontextmanager
-async def lifespan(app_: FastAPI) -> AsyncGenerator[None]:
+async def lifespan(app_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     await database_setup.initialize_database()
 
-    async with api_setup.initialize_api(app_):
-        yield
+    async with api_setup.initialize_api(app_) as state:
+        yield state
 
 
 app = FastAPI(lifespan=lifespan)
