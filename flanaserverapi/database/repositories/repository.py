@@ -1,5 +1,5 @@
 import typing
-from collections.abc import Iterable, Sequence
+from collections.abc import AsyncGenerator, Iterable, Sequence
 from typing import Any
 
 import pymongo.errors
@@ -14,11 +14,14 @@ class Repository[T: BaseModel]:
         # noinspection PyUnresolvedReferences
         self._T = typing.get_args(self.__orig_bases__[0])[0]
 
-    async def delete(self, id: str | ObjectId) -> None:
-        await self._collection.delete_one({'_id': id})
-
-    async def delete_many(self, filter: dict[str, Any]) -> None:
+    async def delete(self, filter: dict[str, Any]) -> None:
         await self._collection.delete_many(filter)
+
+    async def delete_by_id(self, id: str | ObjectId) -> None:
+        await self.delete_one({'_id': id})
+
+    async def delete_one(self, filter: dict[str, Any]) -> None:
+        await self._collection.delete_one(filter)
 
     async def enforce_limit(self, limit: int) -> None:
         if (excess := await self._collection.count_documents({}) - limit) <= 0:
@@ -27,16 +30,26 @@ class Repository[T: BaseModel]:
         cursor = self._collection.find(projection={'_id': True}, sort=('date',), limit=excess)
         await self._collection.delete_many({'_id': {'$in': [document['_id'] async for document in cursor]}})
 
-    async def get_all(self, sort_keys: str | Sequence[str | tuple[str, int]] = ()) -> list[T]:
-        cursor = self._collection.find()
+    async def get(
+        self,
+        filter: Any | None = None,
+        sort_keys: Sequence[str | tuple[str, int]] | None = None,
+        limit: str | None = None
+    ) -> list[T]:
+        return [object_ async for object_ in self.iter(filter, sort_keys, limit)]
 
-        if sort_keys:
-            cursor.sort(sort_keys)
-
-        return [self._T(**document) async for document in cursor]
+    async def get_all(self, sort_keys: Sequence[str | tuple[str, int]] | None = None) -> list[T]:
+        return await self.get(sort_keys=sort_keys)
 
     async def get_by_id(self, id: str | ObjectId) -> T | None:
-        if document := await self._collection.find_one({'_id': id}):
+        return await self.get_one({'_id': id})
+
+    async def get_one(
+        self,
+        filter: Any | None = None,
+        sort_keys: Sequence[str | tuple[str, int]] | None = None
+    ) -> T | None:
+        if document := await self._collection.find_one(filter, sort=sort_keys):
             return self._T(**document)
 
     async def insert(self, item: T, limit: int | None = None) -> T:
@@ -56,6 +69,19 @@ class Repository[T: BaseModel]:
 
         if limit is not None:
             await self.enforce_limit(limit)
+
+    async def iter(
+        self,
+        filter: Any | None = None,
+        sort_keys: Sequence[str | tuple[str, int]] | None = None,
+        limit: str | None = None
+    ) -> AsyncGenerator[T]:
+        async for document in self._collection.find(filter, sort=sort_keys, limit=limit if limit else 0):
+            yield self._T(**document)
+
+    async def iter_all(self, sort_keys: Sequence[str | tuple[str, int]] | None = None) -> AsyncGenerator[T]:
+        async for object_ in self.iter(sort_keys=sort_keys):
+            yield object_
 
     async def update(self, item: T) -> T | None:
         if document := await self._collection.find_one_and_update(
