@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import shutil
 from collections.abc import AsyncIterator, Iterable
+from pathlib import Path
 
 from fastapi import UploadFile
 
@@ -33,13 +34,7 @@ async def clean_up_old_files(file_info_repository: FileInfoRepository) -> None:
         saved_file_names.add(file_info.file_name)
 
     for file_path in config.files_path.iterdir():
-        if (
-            not file_path.is_file()
-            or
-            (file_name := file_path.name) in config.protected_file_names
-            or
-            file_name in saved_file_names
-        ):
+        if not file_path.is_file() or file_path.name in saved_file_names:
             continue
 
         try:
@@ -103,6 +98,11 @@ async def iter_valid_file_infos(file_info_repository: FileInfoRepository) -> Asy
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     file_name = files.normalize_file_name(file.filename)
+
+    if file_name == config.thumbnails_path.name:
+        file_name_path = Path(file_name)
+        file_name = f'{file_name_path.stem}_{file_name_path.suffix}'
+
     new_file_path = config.files_path / file_name
 
     with open(new_file_path, 'wb') as new_file:

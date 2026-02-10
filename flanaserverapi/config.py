@@ -72,19 +72,23 @@ class MongoSettings(AppSettings):
 class PathSettings(AppSettings):
     audio_thumbnail_name: str = 'audio_thumbnail.jpg'
     default_thumbnail_name: str = 'default_thumbnail.webp'
-    protected_file_names: set[str] = {audio_thumbnail_name, default_thumbnail_name}
 
     root_path: Path = Path(__file__).parent
 
     resources_path: Path = root_path / 'resources'
 
     images_path: Path = resources_path / 'images'
-    audio_thumbnail_path: Path = images_path / 'audio_thumbnail.jpg'
-    default_thumbnail_path: Path = images_path / 'default_thumbnail.webp'
+    audio_thumbnail_path: Path = images_path / audio_thumbnail_name
+    default_thumbnail_path: Path = images_path / default_thumbnail_name
 
     static_path: Path = root_path / 'static'
+
     apps_path: Path = static_path / 'apps'
+
     files_path: Path = static_path / 'files'
+    thumbnails_path: Path = files_path / 'thumbnails'
+    static_audio_thumbnail_path: Path = thumbnails_path / audio_thumbnail_name
+    static_default_thumbnail_path: Path = thumbnails_path / default_thumbnail_name
 
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
