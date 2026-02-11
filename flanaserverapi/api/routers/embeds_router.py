@@ -9,8 +9,8 @@ from services import embed_service
 router = APIRouter(prefix='/embeds', tags=['embeds'])
 
 
-@router.get('/{file_name}')
-async def embed_page(file_name: str, request: Request) -> Response:
+@router.get('/{file_name}', response_model=None)
+async def embed_page(file_name: str, request: Request) -> HTMLResponse | RedirectResponse:
     file_url = request.url_for('files', path=file_name)
 
     if 'bot' not in request.headers.get('user-agent', '').lower():

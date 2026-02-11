@@ -20,7 +20,7 @@ async def upload_file(
 
 
 @router.delete('/{file_name}', status_code=204)
-async def delete_file(file_name: str):
+async def delete_file(file_name: str) -> None:
     try:
         await file_service.delete_file(file_name)
     except FileNotFoundError as e:
