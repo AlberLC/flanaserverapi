@@ -20,12 +20,9 @@ async def embed_page(file_name: str, request: Request) -> HTMLResponse | Redirec
 
 
 @router.get('/thumbnail/{file_name}')
-async def thumbnail(file_name: str):
+async def thumbnail(file_name: str) -> Response:
     try:
-        return HTMLResponse(
-            content=embed_service.get_video_thumbnail(file_name),
-            media_type=mimetypes.types_map['.png']
-        )
+        return Response(embed_service.get_video_thumbnail(file_name), media_type=mimetypes.types_map['.png'])
     except NotVideoFileError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except ThumbnailError as e:
