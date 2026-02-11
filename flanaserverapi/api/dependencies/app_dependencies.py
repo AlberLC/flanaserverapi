@@ -26,7 +26,7 @@ async def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: An
             continue
 
         if system_info.ip_geolocation.ip == ip:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
 
 
 def get_app_compressed_path(app_id: AppId, release_type: ReleaseType | None = ReleaseType.LATEST) -> Path:
@@ -38,7 +38,7 @@ def get_app_compressed_path(app_id: AppId, release_type: ReleaseType | None = Re
     )
 
     if not compressed_path.is_file():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=config.file_not_found_message_error)
+        raise HTTPException(status.HTTP_404_NOT_FOUND, config.file_not_found_message_error)
 
     return compressed_path
 

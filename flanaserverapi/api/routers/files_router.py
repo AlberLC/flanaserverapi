@@ -8,7 +8,7 @@ from services import file_service
 router = APIRouter(prefix='/files', tags=['files'])
 
 
-@router.post('', status_code=201)
+@router.post('', status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile,
     expires_in: Annotated[
@@ -19,9 +19,9 @@ async def upload_file(
     return await file_service.save_file(file, expires_in)
 
 
-@router.delete('/{file_name}', status_code=204)
+@router.delete('/{file_name}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(file_name: str) -> None:
     try:
         await file_service.delete_file(file_name)
     except FileNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))

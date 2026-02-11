@@ -12,7 +12,7 @@ get_credentials = HTTPBearer()
 
 async def check_bearer_token(credentials: Annotated[HTTPAuthorizationCredentials, Depends(get_credentials)]) -> None:
     if credentials.credentials != config.api_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
 
 async def get_http_session(http_connection: HTTPConnection) -> aiohttp.ClientSession:
