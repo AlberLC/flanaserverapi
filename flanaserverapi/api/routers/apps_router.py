@@ -23,7 +23,7 @@ from utils import crypto, encoding
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
 
-@router.get('/client-connections/latest', dependencies=[Depends(check_bearer_token)])
+@router.get('/client-connections/latest', dependencies=[Depends(check_bearer_token)], include_in_schema=False)
 async def get_last_client_connections(
     client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)],
     limit: int | None = None,
