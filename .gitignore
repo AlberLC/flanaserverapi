@@ -161,8 +161,8 @@ cert.pem
 # Zips
 *.zip
 
-# Static files
-static
+# Storage files
+storage
 
-#Files metadata
+# Files metadata
 files_metadata.json
