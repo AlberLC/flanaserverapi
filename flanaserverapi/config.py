@@ -95,7 +95,6 @@ class PathSettings(AppSettings):
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
     app_monitor_sleep: float = datetime.timedelta(seconds=1).total_seconds()
-    bytes_media_type: str = 'application/octet-stream'
     client_connection_not_found_message_error: str = 'ClientConnection not found'
     compressed_app_names: dict[str, dict[str, str]] = {
         'flanaarena': {'stem': 'FlanaArena', 'suffix': '.zip'},
@@ -108,6 +107,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
     max_client_connections: int = 1000
+    mime_types: dict[str, str] = {'bytes': 'application/octet-stream', 'zip': 'application/zip'}
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     private_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
     shutdown_ws_message: str = 'shutdown'

@@ -7,7 +7,8 @@ from utils import files
 
 
 def generate_html(file_name: str, file_url: URL, request: Request) -> str:
-    mime_type, main_type = files.get_mime_type(file_name)
+    mime_type = files.get_mime_type(file_name)
+    main_type = mime_type.split('/')[0]
     og_type = config.open_graph_type_map.get(main_type, 'website')
 
     match main_type:
@@ -84,11 +85,8 @@ def generate_html(file_name: str, file_url: URL, request: Request) -> str:
 
 
 def get_video_thumbnail(file_name: str) -> bytes:
-    file_path = config.files_path / file_name
-
-    _, main_type = files.get_mime_type(file_name)
-
-    if main_type != 'video':
+    mime_type = files.get_mime_type(file_name)
+    if mime_type.split('/')[0] != 'video':
         raise NotVideoFileError
 
-    return files.get_video_thumbnail(file_path)
+    return files.get_video_thumbnail(config.files_path / file_name)

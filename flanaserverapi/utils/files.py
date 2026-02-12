@@ -7,13 +7,13 @@ from config import config
 from exceptions import ThumbnailError
 
 
-def get_mime_type(file: str | Path) -> tuple[str, str]:
+def get_mime_type(file: str | Path) -> str:
     mime_type, _ = mimetypes.guess_type(str(file))
 
     if not mime_type:
-        mime_type = 'application/octet-stream'
+        mime_type = config.mime_types['bytes']
 
-    return mime_type, mime_type.split('/')[0]
+    return mime_type
 
 
 def get_video_resolution(file_path: str | Path) -> tuple[int, int]:

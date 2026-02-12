@@ -6,8 +6,9 @@ import aiohttp
 import pymongo
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse
 
+from api import responses
 from api.dependencies.app_dependencies import (check_ip_not_blacklisted, get_app, get_app_compressed_path, get_app_monitor, get_http_client_context)
 from api.dependencies.http_dependencies import check_bearer_token, get_http_session, get_ip
 from api.schemas.app import App
@@ -44,13 +45,23 @@ async def get_last_client_connections(
     ]
 
 
-@router.get('/download', dependencies=[Depends(check_ip_not_blacklisted)])
-@router.get('/download/{release_type}', dependencies=[Depends(check_ip_not_blacklisted)])
+@router.get(
+    '/download',
+    dependencies=[Depends(check_ip_not_blacklisted)],
+    response_class=FileResponse,
+    responses=responses.zip_responses
+)
+@router.get(
+    '/download/{release_type}',
+    dependencies=[Depends(check_ip_not_blacklisted)],
+    response_class=FileResponse,
+    responses=responses.zip_responses
+)
 async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_path)]) -> FileResponse:
     return FileResponse(compressed_path, filename=compressed_path.name)
 
 
-@router.get('/version')
+@router.get('/version', response_class=PlainTextResponse)
 async def get_version(app: Annotated[App, Depends(get_app)]) -> PlainTextResponse:
     if not app:
         raise HTTPException(status.HTTP_404_NOT_FOUND, config.document_not_found_message_error)
@@ -59,28 +70,6 @@ async def get_version(app: Annotated[App, Depends(get_app)]) -> PlainTextRespons
         raise HTTPException(status.HTTP_204_NO_CONTENT)
 
     return PlainTextResponse(app.version)
-
-
-@router.patch('/installation_paths', include_in_schema=False)
-async def register_installation_paths(
-    encrypted_body: Annotated[bytes, Body(media_type=config.bytes_media_type)],
-    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
-) -> Response:
-    body = json.loads(crypto.decrypt(encrypted_body))
-    client_connection_id = body['client_connection_id']
-
-    if not (client_connection := await client_connection_repository.get_by_id(ObjectId(client_connection_id))):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, config.client_connection_not_found_message_error)
-
-    client_connection.app_installation_paths.directory_paths.extend(
-        Path(raw_path) for raw_path in body['directory_paths']
-    )
-    client_connection.app_installation_paths.compressed_paths.extend(
-        Path(raw_path) for raw_path in body['compressed_paths']
-    )
-    await client_connection_repository.update(client_connection)
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post('/license', include_in_schema=False)
@@ -106,6 +95,26 @@ async def get_license(
         'client_connection_id': str(client_connection.id),
         'encrypted_license': encoding.bytes_to_base64(encrypted_license)
     }
+
+
+@router.patch('/installation_paths', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
+async def register_installation_paths(
+    encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
+    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
+) -> None:
+    body = json.loads(crypto.decrypt(encrypted_body))
+    client_connection_id = body['client_connection_id']
+
+    if not (client_connection := await client_connection_repository.get_by_id(ObjectId(client_connection_id))):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, config.client_connection_not_found_message_error)
+
+    client_connection.app_installation_paths.directory_paths.extend(
+        Path(raw_path) for raw_path in body['directory_paths']
+    )
+    client_connection.app_installation_paths.compressed_paths.extend(
+        Path(raw_path) for raw_path in body['compressed_paths']
+    )
+    await client_connection_repository.update(client_connection)
 
 
 @router.websocket('/ws/shutdown')

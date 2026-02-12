@@ -10,7 +10,7 @@ from services import embed_service
 router = APIRouter(prefix='/embeds', tags=['embeds'])
 
 
-@router.get('/{file_name}', response_model=None)
+@router.get('/{file_name}', response_model=None, response_class=HTMLResponse)
 async def embed_page(file_name: str, request: Request) -> HTMLResponse | RedirectResponse:
     file_url = request.url_for(config.static_path.name, path=file_name)
 
@@ -20,7 +20,11 @@ async def embed_page(file_name: str, request: Request) -> HTMLResponse | Redirec
     return HTMLResponse(embed_service.generate_html(file_name, file_url, request))
 
 
-@router.get('/thumbnail/{file_name}')
+@router.get(
+    '/thumbnail/{file_name}',
+    response_class=Response,
+    responses={status.HTTP_200_OK: {'content': {mimetypes.types_map['.png']: {}}}}
+)
 async def thumbnail(file_name: str) -> Response:
     try:
         return Response(embed_service.get_video_thumbnail(file_name), media_type=mimetypes.types_map['.png'])
