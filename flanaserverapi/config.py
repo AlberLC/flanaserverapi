@@ -81,14 +81,16 @@ class PathSettings(AppSettings):
     audio_thumbnail_path: Path = images_path / audio_thumbnail_name
     default_thumbnail_path: Path = images_path / default_thumbnail_name
 
-    static_path: Path = root_path / 'static'
+    storage_path: Path = root_path / 'storage'
 
-    apps_path: Path = static_path / 'apps'
+    apps_path: Path = storage_path / 'apps'
 
-    files_path: Path = static_path / 'files'
-    thumbnails_path: Path = files_path / 'thumbnails'
-    static_audio_thumbnail_path: Path = thumbnails_path / audio_thumbnail_name
-    static_default_thumbnail_path: Path = thumbnails_path / default_thumbnail_name
+    files_path: Path = storage_path / 'files'
+
+    static_path: Path = storage_path / 'static'
+    static_images_path: Path = static_path / 'images'
+    static_audio_thumbnail_path: Path = static_images_path / audio_thumbnail_name
+    static_default_thumbnail_path: Path = static_images_path / default_thumbnail_name
 
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):

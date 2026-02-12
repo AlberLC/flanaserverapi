@@ -17,13 +17,13 @@ def generate_html(file_name: str, file_url: URL, request: Request) -> str:
             thumbnail_url = file_url
         case 'audio':
             thumbnail_url = request.url_for(
-                'files',
-                path=config.static_audio_thumbnail_path.relative_to(config.files_path).as_posix()
+                config.static_path.name,
+                path=config.static_audio_thumbnail_path.relative_to(config.static_path).as_posix()
             )
         case _:
             thumbnail_url = request.url_for(
-                'files',
-                path=config.static_default_thumbnail_path.relative_to(config.files_path).as_posix()
+                config.static_path.name,
+                path=config.static_default_thumbnail_path.relative_to(config.static_path).as_posix()
             )
 
     meta_tags_parts = [

@@ -43,8 +43,9 @@ async def clean_up_old_files(file_info_repository: FileInfoRepository) -> None:
             pass
 
 
-async def delete_file(file_name: str) -> None:
-    file_path = config.files_path / files.normalize_file_name(file_name)
+async def delete_file(file_path: str | Path) -> None:
+    file_path = Path(file_path)
+    file_name = Path(file_path).name
 
     if not file_path.is_file():
         raise FileNotFoundError(f'Archivo {file_name} no encontrado')
@@ -98,11 +99,6 @@ async def iter_valid_file_infos(file_info_repository: FileInfoRepository) -> Asy
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     file_name = files.normalize_file_name(file.filename)
-
-    if file_name == config.thumbnails_path.name:
-        file_name_path = Path(file_name)
-        file_name = f'{file_name_path.stem}_{file_name_path.suffix}'
-
     new_file_path = config.files_path / file_name
 
     with open(new_file_path, 'wb') as new_file:

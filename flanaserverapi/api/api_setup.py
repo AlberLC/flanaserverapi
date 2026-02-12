@@ -12,9 +12,9 @@ from config import config
 @asynccontextmanager
 async def initialize_api(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     config.apps_path.mkdir(parents=True, exist_ok=True)
-    config.thumbnails_path.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(config.audio_thumbnail_path, config.thumbnails_path)
-    shutil.copy2(config.default_thumbnail_path, config.thumbnails_path)
+    config.static_images_path.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config.audio_thumbnail_path, config.static_images_path)
+    shutil.copy2(config.default_thumbnail_path, config.static_images_path)
 
     http_session = aiohttp.ClientSession()
 
