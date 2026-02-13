@@ -22,7 +22,7 @@ class LimitUploadSizeMiddleware:
             if content_length is not None:
                 try:
                     length = int(content_length)
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     pass
                 else:
                     if length > self.max_upload_size:

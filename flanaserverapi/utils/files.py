@@ -29,25 +29,14 @@ def get_video_resolution(file_path: str | Path) -> tuple[int, int]:
     try:
         output = subprocess.check_output(cmd, text=True).strip()
         width, height = (int(size) for size in output.split('x'))
-    except (ValueError, subprocess.CalledProcessError):
+    except ValueError, subprocess.CalledProcessError:
         return config.default_resolution
     else:
         return width, height
 
 
 def get_video_thumbnail(file_path: str | Path) -> bytes:
-    cmd = [
-        'ffmpeg',
-        '-i',
-        str(file_path),
-        '-vframes',
-        '1',
-        '-f',
-        'image2pipe',
-        '-vcodec',
-        'png',
-        'pipe:1'
-    ]
+    cmd = ['ffmpeg', '-i', str(file_path), '-vframes', '1', '-f', 'image2pipe', '-vcodec', 'png', 'pipe:1']
 
     try:
         return subprocess.run(cmd, capture_output=True, check=True).stdout
