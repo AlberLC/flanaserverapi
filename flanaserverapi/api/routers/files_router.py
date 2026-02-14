@@ -14,7 +14,7 @@ router = APIRouter(prefix='/files', tags=['files'])
 
 @router.get('/{file_name}', response_class=FileResponse, responses=responses.bytes_responses)
 async def get_file(file_path: Annotated[Path, Depends(get_file_path)]) -> FileResponse:
-    return FileResponse(file_path, filename=file_path.name)
+    return FileResponse(file_path, filename=file_path.name, content_disposition_type='inline')
 
 
 @router.post('', status_code=status.HTTP_201_CREATED)
