@@ -79,7 +79,7 @@ async def get_license(
     app: Annotated[App, Depends(get_app)],
     client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
 ) -> dict[str, str]:
-    client_connection = await client_connection_repository.insert(
+    client_connection = await client_connection_repository.insert_one(
         ClientConnection(app_id=app_id, system_info=client_context.system_info),
         limit=config.max_client_connections
     )
@@ -114,7 +114,7 @@ async def register_installation_paths(
     client_connection.app_installation_paths.compressed_paths.extend(
         Path(raw_path) for raw_path in body['compressed_paths']
     )
-    await client_connection_repository.update(client_connection)
+    await client_connection_repository.update_one(client_connection)
 
 
 @router.websocket('/ws/shutdown')

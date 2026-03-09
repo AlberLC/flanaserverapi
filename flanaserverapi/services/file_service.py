@@ -122,7 +122,7 @@ async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
     file_info_repository = FileInfoRepository()
 
     await file_info_repository.delete_one({'file_name': file_info.file_name})
-    await file_info_repository.insert(file_info)
+    await file_info_repository.insert_one(file_info)
 
     await enforce_storage_limit(file_info_repository)
 

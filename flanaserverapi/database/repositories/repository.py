@@ -34,7 +34,7 @@ class Repository[T: BaseModel]:
         self,
         filter: Any | None = None,
         sort_keys: Sequence[str | tuple[str, int]] | None = None,
-        limit: str | None = None
+        limit: int | None = None
     ) -> list[T]:
         return [object_ async for object_ in self.iter(filter, sort_keys, limit)]
 
@@ -52,16 +52,7 @@ class Repository[T: BaseModel]:
         if document := await self._collection.find_one(filter, sort=sort_keys):
             return self._T(**document)
 
-    async def insert(self, item: T, limit: int | None = None) -> T:
-        insert_result = await self._collection.insert_one(item.model_dump(by_alias=True))
-        item.id = insert_result.inserted_id
-
-        if limit is not None and await self._collection.count_documents({}) > limit:
-            await self._collection.find_one_and_delete({}, sort=('date',))
-
-        return item
-
-    async def insert_many(self, items: Iterable[T], limit: int | None = None) -> None:
+    async def insert(self, items: Iterable[T], limit: int | None = None) -> None:
         try:
             await self._collection.insert_many((item.model_dump(by_alias=True) for item in items))
         except pymongo.errors.InvalidOperation:
@@ -70,11 +61,20 @@ class Repository[T: BaseModel]:
         if limit is not None:
             await self.enforce_limit(limit)
 
+    async def insert_one(self, item: T, limit: int | None = None) -> T:
+        insert_result = await self._collection.insert_one(item.model_dump(by_alias=True))
+        item.id = insert_result.inserted_id
+
+        if limit is not None and await self._collection.count_documents({}) > limit:
+            await self._collection.find_one_and_delete({}, sort=('date',))
+
+        return item
+
     async def iter(
         self,
         filter: Any | None = None,
         sort_keys: Sequence[str | tuple[str, int]] | None = None,
-        limit: str | None = None
+        limit: int | None = None
     ) -> AsyncGenerator[T]:
         async for document in self._collection.find(filter, sort=sort_keys, limit=limit if limit else 0):
             yield self._T(**document)
@@ -83,7 +83,7 @@ class Repository[T: BaseModel]:
         async for object_ in self.iter(sort_keys=sort_keys):
             yield object_
 
-    async def update(self, item: T) -> T | None:
+    async def update_one(self, item: T) -> T | None:
         if document := await self._collection.find_one_and_update(
             {'_id': item.id},
             {'$set': item.model_dump(by_alias=True)},

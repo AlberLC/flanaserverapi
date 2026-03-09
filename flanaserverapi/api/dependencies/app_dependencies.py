@@ -17,7 +17,7 @@ from services.app_monitor import AppMonitor
 
 
 async def get_app(app_id: AppId, app_repository: Annotated[AppRepository, Depends(AppRepository)]) -> App:
-    return await app_repository.get_by_id(app_id) or await app_repository.insert(App(_id=app_id))
+    return await app_repository.get_by_id(app_id) or await app_repository.insert_one(App(_id=app_id))
 
 
 async def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: Annotated[str, Depends(get_ip)]) -> None:

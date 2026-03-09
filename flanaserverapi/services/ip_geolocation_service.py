@@ -51,6 +51,6 @@ async def get_ip_geolocation(session: aiohttp.ClientSession, ip: str) -> IpGeolo
 
     if geojs_data or ip_geolocation_data:
         ip_geolocation = IpGeolocation(ip=ip, geojs_data=geojs_data, ip_geolocation_data=ip_geolocation_data)
-        await cached_ip_geolocation_repository.insert(CachedIpGeolocation(_id=ip, ip_geolocation=ip_geolocation))
+        await cached_ip_geolocation_repository.insert_one(CachedIpGeolocation(_id=ip, ip_geolocation=ip_geolocation))
 
         return ip_geolocation
