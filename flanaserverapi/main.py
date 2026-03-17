@@ -16,10 +16,10 @@ from workers import workers_main
 
 
 @asynccontextmanager
-async def lifespan(app_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
+async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
     await database_setup.initialize_database()
 
-    async with api_setup.initialize_api(app_) as state:
+    async with api_setup.initialize_api() as state:
         yield state
 
 
