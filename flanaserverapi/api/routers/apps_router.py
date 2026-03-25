@@ -4,6 +4,7 @@ from typing import Annotated, Any
 
 import aiohttp
 import pymongo
+import websockets
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -136,7 +137,7 @@ async def wait_shutdown(
             if license_service.generate_license(app, client_context).features.disable:
                 await websocket.send_text(config.shutdown_ws_message)
                 break
-    except WebSocketDisconnect:
+    except WebSocketDisconnect, websockets.ConnectionClosedError:
         pass
     finally:
         app_monitor.remove_client()
