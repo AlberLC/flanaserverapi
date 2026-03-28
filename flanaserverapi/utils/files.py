@@ -54,7 +54,7 @@ def replace_non_alpha_with_underscore(text: str) -> str:
     previous_was_underscore = False
 
     for character in urllib.parse.unquote(text):
-        if character.isalpha():
+        if character.isalnum():
             characters.append(character)
             previous_was_underscore = False
         elif not previous_was_underscore:
