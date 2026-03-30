@@ -1,10 +1,21 @@
 import mimetypes
 import subprocess
 import urllib.parse
+import uuid
 from pathlib import Path
 
 from config import config
 from exceptions import ThumbnailError
+
+
+def ensure_valid_file_name(file_name: str) -> str:
+    file_name_path = Path(file_name)
+    file_stem = replace_non_alpha_with_underscore(file_name_path.stem)
+
+    if len(file_stem) < config.file_name_min_length:
+        file_stem = uuid.uuid7().hex
+
+    return f'{file_stem}{file_name_path.suffix}'
 
 
 def get_mime_type(file: str | Path) -> str:
@@ -42,11 +53,6 @@ def get_video_thumbnail(file_path: str | Path) -> bytes:
         return subprocess.run(cmd, capture_output=True, check=True).stdout
     except subprocess.CalledProcessError as e:
         raise ThumbnailError from e
-
-
-def normalize_file_name(file_name: str) -> str:
-    file_name_path = Path(file_name)
-    return f'{replace_non_alpha_with_underscore(file_name_path.stem)}{file_name_path.suffix}'
 
 
 def replace_non_alpha_with_underscore(text: str) -> str:

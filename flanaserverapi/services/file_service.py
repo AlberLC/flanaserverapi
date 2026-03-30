@@ -98,7 +98,7 @@ async def iter_valid_file_infos(file_info_repository: FileInfoRepository) -> Asy
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:
-    file_name = files.normalize_file_name(file.filename)
+    file_name = files.ensure_valid_file_name(file.filename)
     new_file_path = config.files_path / file_name
 
     with open(new_file_path, 'wb') as new_file:

@@ -95,15 +95,16 @@ class PathSettings(AppSettings):
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
     app_monitor_sleep: float = datetime.timedelta(seconds=1).total_seconds()
-    client_connection_not_found_message_error: str = 'ClientConnection not found'
+    client_connection_not_found_error_message: str = 'ClientConnection not found'
     compressed_app_names: dict[str, dict[str, str]] = {
         'flanaarena': {'stem': 'FlanaArena', 'suffix': '.zip'},
         'flanacs': {'stem': 'FlanaCS', 'suffix': '.zip'},
         'flanatrigo': {'stem': 'FlanaTrigo', 'suffix': '.zip'}
     }
     default_resolution: tuple[int, int] = (1280, 720)
-    document_not_found_message_error: str = 'Document not found'
-    file_not_found_message_error: str = 'File not found'
+    document_not_found_error_message: str = 'Document not found'
+    file_name_min_length: int = 10
+    file_not_found_error_message: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
     max_client_connections: int = 1000
