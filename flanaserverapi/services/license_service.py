@@ -15,7 +15,10 @@ def generate_license(app: App, client_context: ClientContext) -> License:
         for blacklisted_system_info in app.blacklisted_system_infos
     ):
         kwargs['features'] = license_config.blacklisted_system_info_features
-    elif client_context.system_info in app.whitelisted_system_infos:
+    elif any(
+        client_context.system_info.has_matching_attributes(whitelisted_system_info)
+        for whitelisted_system_info in app.whitelisted_system_infos
+    ):
         kwargs['features'] = license_config.whitelisted_system_info_features
     elif not license_config.code or client_context.client_code == license_config.code:
         kwargs['features'] = license_config.default_features
