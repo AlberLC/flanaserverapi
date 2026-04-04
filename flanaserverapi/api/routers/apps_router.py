@@ -10,7 +10,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocke
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from api import responses
-from api.dependencies.app_dependencies import (check_ip_not_blacklisted, get_app, get_app_compressed_path, get_app_monitor, get_http_client_context)
+from api.dependencies.app_dependencies import (
+    check_ip_not_blacklisted,
+    get_app,
+    get_app_compressed_path,
+    get_app_monitor,
+    get_http_client_context
+)
 from api.dependencies.http_dependencies import check_bearer_token, get_http_session, get_ip
 from api.schemas.app import App
 from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
@@ -120,15 +126,15 @@ async def register_installation_paths(
 
 @router.websocket('/ws/shutdown')
 async def wait_shutdown(
-    websocket: WebSocket,
-    session: Annotated[aiohttp.ClientSession, Depends(get_http_session)],
+    app_monitor: Annotated[AppMonitor, Depends(get_app_monitor)],
     ip: Annotated[str, Depends(get_ip)],
-    app_monitor: Annotated[AppMonitor, Depends(get_app_monitor)]
+    session: Annotated[aiohttp.ClientSession, Depends(get_http_session)],
+    websocket: WebSocket
 ) -> None:
     try:
         await websocket.accept()
 
-        client_context = await client_context_service.build_client_context(await websocket.receive_bytes(), session, ip)
+        client_context = await client_context_service.build_client_context(await websocket.receive_bytes(), ip, session)
         app_monitor.add_client()
 
         while True:

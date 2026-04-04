@@ -12,7 +12,7 @@ from database.repositories.file_info import FileInfoRepository
 from utils import files
 
 
-async def _delete_file_infos(file_info_repository: FileInfoRepository, file_infos: Iterable[FileInfo]) -> None:
+async def _delete_file_infos(file_infos: Iterable[FileInfo], file_info_repository: FileInfoRepository) -> None:
     ids_to_delete = []
 
     for file_info in file_infos:
@@ -69,7 +69,7 @@ async def enforce_storage_limit(file_info_repository: FileInfoRepository) -> Non
         if used_storage <= config.files_max_storage_size:
             break
 
-    await _delete_file_infos(file_info_repository, file_infos_to_delete)
+    await _delete_file_infos(file_infos_to_delete, file_info_repository)
 
 
 async def get_used_storage(file_info_repository: FileInfoRepository) -> int:
@@ -94,7 +94,7 @@ async def iter_valid_file_infos(file_info_repository: FileInfoRepository) -> Asy
 
         yield file_info
 
-    await _delete_file_infos(file_info_repository, file_infos_to_delete)
+    await _delete_file_infos(file_infos_to_delete, file_info_repository)
 
 
 async def save_file(file: UploadFile, expires_in: int | None) -> FileInfo:

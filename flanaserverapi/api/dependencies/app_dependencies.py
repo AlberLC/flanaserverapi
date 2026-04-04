@@ -52,7 +52,7 @@ async def get_app_monitor(app_id: AppId, http_connection: HTTPConnection) -> App
 
 async def get_http_client_context(
     encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
-    session: Annotated[aiohttp.ClientSession, Depends(get_http_session)],
-    ip: Annotated[str, Depends(get_ip)]
+    ip: Annotated[str, Depends(get_ip)],
+    session: Annotated[aiohttp.ClientSession, Depends(get_http_session)]
 ) -> ClientContext:
-    return await client_context_service.build_client_context(encrypted_body, session, ip)
+    return await client_context_service.build_client_context(encrypted_body, ip, session)

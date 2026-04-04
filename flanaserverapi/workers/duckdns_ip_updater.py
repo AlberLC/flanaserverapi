@@ -6,6 +6,13 @@ import aiohttp
 from config import config
 
 
+async def run_ip_updater() -> Never:
+    async with aiohttp.ClientSession() as session:
+        while True:
+            await update_ip(session)
+            await asyncio.sleep(config.duckdns_ip_updater_sleep)
+
+
 async def update_ip(session: aiohttp.ClientSession) -> None:
     try:
         async with session.get(
@@ -16,10 +23,3 @@ async def update_ip(session: aiohttp.ClientSession) -> None:
                 print(config.duckdns_ip_updater_error_message)
     except (TimeoutError, aiohttp.ClientError) as e:
         print(f'{config.duckdns_ip_updater_error_message}: {e}')
-
-
-async def run_ip_updater() -> Never:
-    async with aiohttp.ClientSession() as session:
-        while True:
-            await update_ip(session)
-            await asyncio.sleep(config.duckdns_ip_updater_sleep)
