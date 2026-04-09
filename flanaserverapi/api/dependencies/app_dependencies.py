@@ -38,7 +38,7 @@ def get_app_compressed_path(app_id: AppId, release_type: ReleaseType | None = Re
     )
 
     if not compressed_path.is_file():
-        raise HTTPException(status.HTTP_404_NOT_FOUND, config.file_not_found_message_error)
+        raise HTTPException(status.HTTP_404_NOT_FOUND, config.file_not_found_error_message)
 
     return compressed_path
 

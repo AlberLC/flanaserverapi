@@ -71,7 +71,7 @@ async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_p
 @router.get('/version', response_class=PlainTextResponse)
 async def get_version(app: Annotated[App, Depends(get_app)]) -> PlainTextResponse:
     if not app:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, config.document_not_found_message_error)
+        raise HTTPException(status.HTTP_404_NOT_FOUND, config.document_not_found_error_message)
 
     if not app.version:
         raise HTTPException(status.HTTP_204_NO_CONTENT)
@@ -113,7 +113,7 @@ async def register_installation_paths(
     client_connection_id = body['client_connection_id']
 
     if not (client_connection := await client_connection_repository.get_by_id(ObjectId(client_connection_id))):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, config.client_connection_not_found_message_error)
+        raise HTTPException(status.HTTP_404_NOT_FOUND, config.client_connection_not_found_error_message)
 
     client_connection.app_installation_paths.directory_paths.extend(
         Path(raw_path) for raw_path in body['directory_paths']
