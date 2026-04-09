@@ -51,7 +51,7 @@ class ClientConnectionSummary(ObjectIdModel):
             ip_geolocation = None
 
         return cls(
-            _id=client_connection.id,
+            _id=client_connection.mongo_id,
             app_id=client_connection.app_id,
             username=client_connection.system_info.username,
             hostname=client_connection.system_info.hostname,

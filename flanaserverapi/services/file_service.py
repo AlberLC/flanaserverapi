@@ -21,7 +21,7 @@ async def _delete_file_infos(file_infos: Iterable[FileInfo], file_info_repositor
         except PermissionError:
             pass
 
-        ids_to_delete.append(file_info.id)
+        ids_to_delete.append(file_info.mongo_id)
 
     if ids_to_delete:
         await file_info_repository.delete({'_id': {'$in': ids_to_delete}})

@@ -99,7 +99,7 @@ async def get_license(
     )
 
     return {
-        'client_connection_id': str(client_connection.id),
+        'client_connection_id': str(client_connection.mongo_id),
         'encrypted_license': encoding.bytes_to_base64(encrypted_license)
     }
 
