@@ -4,7 +4,7 @@ from typing import Any
 
 import pymongo.errors
 from bson import ObjectId
-from pydantic import BaseModel
+from pymongo import UpdateOne
 from pymongo.asynchronous.collection import AsyncCollection, ReturnDocument
 
 from api.schemas.bases import MongoModel
@@ -15,6 +15,14 @@ class Repository[T: MongoModel]:
         self._collection = collection
         # noinspection PyUnresolvedReferences
         self._T = typing.get_args(self.__orig_bases__[0])[0]
+
+    async def bulk_update(self, items: Sequence[T]) -> None:
+        if not items:
+            return
+
+        await self._collection.bulk_write(
+            [UpdateOne({'_id': item.mongo_id}, {'$set': item.model_dump(by_alias=True)}, upsert=True) for item in items]
+        )
 
     async def delete(self, filter: dict[str, Any]) -> None:
         await self._collection.delete_many(filter)
