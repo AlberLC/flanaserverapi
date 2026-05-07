@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from api.schemas.bases import MongoModel
+
 
 class IpGeolocation(BaseModel):
     ip: str
@@ -13,7 +15,6 @@ class IpGeolocation(BaseModel):
         return isinstance(other, IpGeolocation) and self.ip == other.ip
 
 
-class CachedIpGeolocation(BaseModel):
-    id: str = Field(alias='_id')
+class CachedIpGeolocation(MongoModel[str]):
     ip_geolocation: IpGeolocation
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
