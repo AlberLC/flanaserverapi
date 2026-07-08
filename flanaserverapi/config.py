@@ -6,11 +6,14 @@ from typing import Annotated
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from enums import Environment
+
 
 class AppSettings(BaseSettings):
     api_host: str | None = None
     api_port: int | None = None
     api_token: str | None = None
+    environment: Environment
     subdomain: str | None = None
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
