@@ -32,8 +32,8 @@ app.include_router(ping_router.router)
 
 app.mount(
     f'/{config.static_path.name}',
-    StaticFiles(directory=config.static_path.relative_to(config.root_path).as_posix(), check_dir=False),
-    name=config.static_path.name
+    StaticFiles(directory=config.static_path, check_dir=False),
+    config.static_path.name
 )
 
 app.add_middleware(LimitUploadSizeMiddleware, config.upload_max_size)

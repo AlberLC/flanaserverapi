@@ -9,7 +9,7 @@ from services import embed_service
 router = APIRouter(prefix='/embeds', tags=['embeds'])
 
 
-@router.get('/{file_name}', response_model=None, response_class=HTMLResponse)
+@router.get('/{file_name}', response_model=None, response_class=Response)
 async def embed_page(file_name: str, request: Request) -> HTMLResponse | RedirectResponse:
     file_url = request.url_for('get_file', file_name=file_name)
 
