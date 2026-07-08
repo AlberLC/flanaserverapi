@@ -23,7 +23,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
         yield state
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path=config.api_root, root_path_in_servers=False)
 
 app.include_router(apps_router.router)
 app.include_router(embeds_router.router)

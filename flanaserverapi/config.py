@@ -12,6 +12,7 @@ from enums import Environment
 class AppSettings(BaseSettings):
     api_host: str | None = None
     api_port: int | None = None
+    api_root: str = '/api'
     api_token: str | None = None
     environment: Environment
     subdomain: str | None = None
