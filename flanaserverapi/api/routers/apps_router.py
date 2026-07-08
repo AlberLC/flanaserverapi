@@ -2,11 +2,9 @@ import json
 from pathlib import Path
 from typing import Annotated, Any
 
-import aiohttp
 import pymongo
-import websockets
 from bson import ObjectId
-from fastapi import APIRouter, Body, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from api import responses
@@ -14,18 +12,16 @@ from api.dependencies.app_dependencies import (
     check_ip_not_blacklisted,
     get_app,
     get_app_compressed_path,
-    get_app_monitor,
     get_http_client_context
 )
-from api.dependencies.http_dependencies import check_bearer_token, get_http_session, get_ip
+from api.dependencies.http_dependencies import check_bearer_token
 from api.schemas.app import App
 from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
 from api.schemas.client_context import ClientContext
 from config import config
 from custom_types import AppId
 from database.repositories.client_connection_repository import ClientConnectionRepository
-from services import client_context_service, license_service
-from services.app_monitor import AppMonitor
+from services import license_service
 from utils import crypto, encoding
 
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
@@ -122,28 +118,3 @@ async def register_installation_paths(
         Path(raw_path) for raw_path in body['compressed_paths']
     )
     await client_connection_repository.update_one(client_connection)
-
-
-@router.websocket('/ws/shutdown')
-async def wait_shutdown(
-    app_monitor: Annotated[AppMonitor, Depends(get_app_monitor)],
-    ip: Annotated[str, Depends(get_ip)],
-    session: Annotated[aiohttp.ClientSession, Depends(get_http_session)],
-    websocket: WebSocket
-) -> None:
-    try:
-        await websocket.accept()
-
-        client_context = await client_context_service.build_client_context(await websocket.receive_bytes(), ip, session)
-        app_monitor.add_client()
-
-        while True:
-            app = await app_monitor.wait_app()
-
-            if license_service.generate_license(app, client_context).features.disable:
-                await websocket.send_text(config.shutdown_ws_message)
-                break
-    except WebSocketDisconnect, websockets.ConnectionClosedError:
-        pass
-    finally:
-        app_monitor.remove_client()
