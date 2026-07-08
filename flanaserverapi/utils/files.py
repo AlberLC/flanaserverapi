@@ -8,12 +8,15 @@ from config import config
 from exceptions import ThumbnailError
 
 
-def ensure_valid_file_name(file_name: str) -> str:
+def ensure_valid_file_name(file_name: str | None) -> str:
+    if not file_name:
+        return uuid.uuid7().hex
+
     file_name_path = Path(file_name)
     file_stem = replace_non_alpha_with_underscore(file_name_path.stem)
 
     if len(file_stem) < config.file_name_min_length:
-        file_stem = uuid.uuid7().hex
+        file_stem = f'{file_stem}{uuid.uuid7().hex}'
 
     return f'{file_stem}{file_name_path.suffix}'
 
