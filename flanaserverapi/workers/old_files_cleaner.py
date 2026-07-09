@@ -2,7 +2,7 @@ import asyncio
 from typing import Never
 
 from config import config
-from database.repositories.file_info import FileInfoRepository
+from database.repositories.file_info_repository import FileInfoRepository
 from services import file_service
 
 

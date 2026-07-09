@@ -8,7 +8,7 @@ from fastapi import UploadFile
 
 from api.schemas.file_info import FileInfo
 from config import config
-from database.repositories.file_info import FileInfoRepository
+from database.repositories.file_info_repository import FileInfoRepository
 from utils import files
 
 
