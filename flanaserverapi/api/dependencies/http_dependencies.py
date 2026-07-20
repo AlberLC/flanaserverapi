@@ -1,3 +1,4 @@
+import secrets
 from typing import Annotated
 
 import aiohttp
@@ -11,7 +12,7 @@ get_credentials = HTTPBearer()
 
 
 async def check_bearer_token(credentials: Annotated[HTTPAuthorizationCredentials, Depends(get_credentials)]) -> None:
-    if credentials.credentials != config.api_token:
+    if not secrets.compare_digest(credentials.credentials, config.api_token):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
 
