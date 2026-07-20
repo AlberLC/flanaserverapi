@@ -10,8 +10,7 @@ from config import config
 
 @asynccontextmanager
 async def initialize_api() -> AsyncGenerator[dict[str, Any]]:
-    config.apps_path.mkdir(parents=True, exist_ok=True)
-    config.static_images_path.mkdir(parents=True, exist_ok=True)
+    initialize_directories()
     shutil.copy2(config.audio_thumbnail_path, config.static_images_path)
     shutil.copy2(config.default_thumbnail_path, config.static_images_path)
 
@@ -21,3 +20,10 @@ async def initialize_api() -> AsyncGenerator[dict[str, Any]]:
         yield {'app_monitors': {}, 'http_session': http_session}
     finally:
         await http_session.close()
+
+
+def initialize_directories() -> None:
+    config.apps_path.mkdir(parents=True, exist_ok=True)
+    config.physical_files_path.mkdir(parents=True, exist_ok=True)
+    config.temporary_files_path.mkdir(parents=True, exist_ok=True)
+    config.static_images_path.mkdir(parents=True, exist_ok=True)
