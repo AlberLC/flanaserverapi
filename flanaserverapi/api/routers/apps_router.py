@@ -84,7 +84,8 @@ async def get_license(
 ) -> dict[str, str]:
     client_connection = await client_connection_repository.insert_one(
         ClientConnection(app_id=app_id, system_info=client_context.system_info),
-        limit=config.max_client_connections
+        max_documents=config.max_client_connections,
+        max_documents_sort_keys=('date',)
     )
 
     license_ = license_service.generate_license(app, client_context)
@@ -117,4 +118,4 @@ async def register_installation_paths(
     client_connection.app_installation_paths.compressed_paths.extend(
         Path(raw_path) for raw_path in body['compressed_paths']
     )
-    await client_connection_repository.update_one(client_connection)
+    await client_connection_repository.update_one_by_id(client_connection)
