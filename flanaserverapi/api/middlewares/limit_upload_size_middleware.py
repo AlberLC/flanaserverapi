@@ -2,7 +2,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from exceptions import PayloadTooLarge
+from exceptions import PayloadTooLargeError
 
 
 class LimitUploadSizeMiddleware:
@@ -26,10 +26,10 @@ class LimitUploadSizeMiddleware:
                     pass
                 else:
                     if length > self.max_upload_size:
-                        raise PayloadTooLarge(self.max_upload_size)
+                        raise PayloadTooLargeError(self.max_upload_size)
 
             await self.app(scope, self._create_limited_receive(receive), send)
-        except PayloadTooLarge as e:
+        except PayloadTooLargeError as e:
             response = JSONResponse({'error': str(e)}, status.HTTP_413_CONTENT_TOO_LARGE)
             await response(scope, receive, send)
 
@@ -46,7 +46,7 @@ class LimitUploadSizeMiddleware:
                 size += len(body)
 
                 if size > self.max_upload_size:
-                    raise PayloadTooLarge(self.max_upload_size)
+                    raise PayloadTooLargeError(self.max_upload_size)
 
             return message
 
