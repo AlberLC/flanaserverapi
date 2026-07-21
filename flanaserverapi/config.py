@@ -69,8 +69,8 @@ class MongoSettings(AppSettings):
             }
         ]
     }
-    mongo_username: str | None = None
     mongo_password: str | None = None
+    mongo_username: str | None = None
 
 
 class PathSettings(AppSettings):
