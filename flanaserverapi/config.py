@@ -57,15 +57,25 @@ class MongoSettings(AppSettings):
                 'expireAfterSeconds': datetime.timedelta(days=1).total_seconds()
             }
         ],
-        'file_info': [
+        'physical_file': [
+            {
+                'name': 'hash_1',
+                'keys': 'hash'
+            },
             {
                 'name': 'created_at_1',
                 'keys': 'created_at'
-            },
+            }
+        ],
+        'temporary_file': [
             {
-                'name': 'file_name_1',
-                'keys': 'file_name',
-                'unique': True
+                'name': 'created_at_null_virtual_file_id',
+                'keys': [
+                    ('created_at', 1),
+                ],
+                'partialFilterExpression': {
+                    'virtual_file_id': None
+                }
             }
         ]
     }
@@ -90,6 +100,8 @@ class PathSettings(AppSettings):
     apps_path: Path = storage_path / 'apps'
 
     files_path: Path = storage_path / 'files'
+    physical_files_path: Path = files_path / 'physical_files'
+    temporary_files_path: Path = files_path / 'temporary_files'
 
     static_path: Path = storage_path / 'static'
     static_images_path: Path = static_path / 'images'
@@ -111,6 +123,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     file_not_found_error_message: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_max_storage_size: int = 20_000_000_000
+    id_length: int = 6
     max_client_connections: int = 1000
     mime_types: dict[str, str] = {'bytes': 'application/octet-stream', 'zip': 'application/zip'}
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
@@ -118,7 +131,11 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     shutdown_ws_message: str = 'shutdown'
     symmetric_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
     system_info_identifying_attributes: tuple[str, ...] = ('username', 'hostname', 'mac_address', 'ip_geolocation')
+    temporary_files_cleanup_protection_period: datetime.timedelta = datetime.timedelta(minutes=5)
+    temporary_files_ttl: datetime.timedelta = datetime.timedelta(hours=2)
+    upload_chunk_size: int = 5_242_880
     upload_max_size: int = 3_000_000_000
 
 
+# noinspection PyArgumentList
 config = Config()
