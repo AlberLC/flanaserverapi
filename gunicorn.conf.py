@@ -4,6 +4,7 @@ import multiprocessing
 import gunicorn.arbiter
 from uvicorn_worker import UvicornWorker
 
+from config import config as config_
 from workers import workers_main
 
 
@@ -15,7 +16,7 @@ def on_starting(_arbiter: gunicorn.arbiter.Arbiter) -> None:
     multiprocessing.Process(target=workers_main.run, daemon=True).start()
 
 
-bind = '0.0.0.0:5210'
+bind = f'{config_.api_host}:{config_.api_port}'
 preload_app = True
 worker_class = WSUvicornWorker
 workers = 4
