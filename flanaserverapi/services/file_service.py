@@ -52,7 +52,7 @@ async def _clean_up_virtual_files(
 ) -> None:
     virtual_file_ids_to_delete = []
 
-    async for virtual_file in virtual_file_repository.iter_all():
+    async for virtual_file in virtual_file_repository.iter():
         if (
             virtual_file.physical_file_id
             and
@@ -154,7 +154,7 @@ async def _iter_valid_physical_files(
     physical_files_to_delete_by_id = {}
     virtual_files_to_delete = []
 
-    async for physical_file in physical_file_repository.iter_all():
+    async for physical_file in physical_file_repository.iter():
         referenced_virtual_files = await virtual_file_repository.get(
             {'_id': {'$in': tuple(physical_file.virtual_file_ids)}}
         )
@@ -192,7 +192,7 @@ async def _iter_valid_temporary_files(
     now = datetime.datetime.now(datetime.UTC)
     temporary_files_to_delete = []
 
-    async for temporary_file in temporary_file_repository.iter_all():
+    async for temporary_file in temporary_file_repository.iter():
         file_path = config.temporary_files_path / temporary_file.mongo_id
         if (
             temporary_file.virtual_file_id
@@ -245,7 +245,7 @@ async def enforce_storage_limit(
     physical_files_to_delete_by_id = {}
     virtual_file_ids_to_delete = []
 
-    async for physical_file in physical_file_repository.iter_all(sort_keys=('created_at',)):
+    async for physical_file in physical_file_repository.iter(sort_keys=('created_at',)):
         virtual_file_ids_to_delete.extend(physical_file.virtual_file_ids)
         physical_files_to_delete_by_id[physical_file.mongo_id] = physical_file
         used_storage -= physical_file.size
