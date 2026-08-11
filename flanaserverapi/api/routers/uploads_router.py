@@ -9,7 +9,13 @@ from api.schemas.virtual_files import VirtualFileResponse
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
-from exceptions import IncompleteUploadError, InvalidChunkError, UploadFinalizedError, UploadNotFoundError
+from exceptions import (
+    IncompleteUploadError,
+    InvalidChunkError,
+    ThumbnailError,
+    UploadFinalizedError,
+    UploadNotFoundError
+)
 from services import upload_service
 
 router = APIRouter(prefix='/uploads')
@@ -59,6 +65,8 @@ async def complete_upload(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
     except (IncompleteUploadError, UploadFinalizedError) as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e))
+    except ThumbnailError as e:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
 
 @router.patch('/{upload_id}/chunks', status_code=status.HTTP_204_NO_CONTENT)

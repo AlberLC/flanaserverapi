@@ -5,6 +5,8 @@ from collections.abc import AsyncGenerator, Iterable, Sequence
 from pathlib import Path
 
 from bson import ObjectId
+from fastapi import Request
+from fastapi.datastructures import URL
 
 from api.schemas.bases import MongoModel
 from api.schemas.physical_file import PhysicalFile
@@ -15,6 +17,7 @@ from database.repositories.physical_file_repository import PhysicalFileRepositor
 from database.repositories.repository import Repository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
+from utils import file_utils
 
 
 async def _clean_up_files(files_path: Path, valid_files_generator: AsyncGenerator[MongoModel]) -> None:
@@ -285,6 +288,81 @@ async def enforce_storage_limit(
     await _delete_temporary_files(temporary_files_to_delete, temporary_file_repository)
 
 
+async def generate_embed_page(
+    file_id: str,
+    file_url: URL,
+    physical_file_repository: PhysicalFileRepository,
+    virtual_file_repository: VirtualFileRepository,
+    request: Request
+) -> str:
+    if (
+        not (virtual_file := await virtual_file_repository.get_by_id(file_id))
+        or
+        not virtual_file.physical_file_id
+        or
+        not (physical_file := await physical_file_repository.get_by_id(virtual_file.physical_file_id))
+    ):
+        raise FileNotFoundError(config.file_not_found_error_message)
+
+    main_type = physical_file.mime_type.split('/')[0]
+
+    meta_tags_parts = [
+        f'<title>{virtual_file.name}</title>',
+        f'<meta property="og:title" content="{virtual_file.name}" />',
+        f'<meta property="og:description" content="File: {virtual_file.name}" />',
+        f'<meta property="og:type" content="{config.open_graph_type_map.get(main_type, 'website')}" />',
+        f'<meta property="og:url" content="{file_url}" />',
+        f'<meta property="og:image" content="{request.url_for('get_file_thumbnail', file_id=file_id)}" />'
+    ]
+
+    if main_type == 'video':
+        width, height = file_utils.get_video_resolution(config.physical_files_path / str(physical_file.mongo_id))
+        meta_tags_parts.extend(
+            (
+                f'<meta property="og:video" content="{file_url}" />',
+                f'<meta property="og:video:type" content="{physical_file.mime_type}" />',
+                f'<meta property="og:video:width" content="{width}" />',
+                f'<meta property="og:video:height" content="{height}" />'
+            )
+        )
+    elif main_type == 'audio':
+        meta_tags_parts.extend(
+            (
+                f'<meta property="og:audio" content="{file_url}" />',
+                f'<meta property="og:audio:type" content="{physical_file.mime_type}" />'
+            )
+        )
+
+    # This should not be visible to anyone, but some human user agents might contain the string 'bot' and might have skipped the initial redirect
+    body_parts = [
+        f'<h1>{virtual_file.name}</h1>',
+        f'<p>Enlace directo: <a href="{file_url}">{file_url}</a></p>'
+    ]
+
+    match main_type:
+        case 'video':
+            body_parts.append(f'<video controls><source src="{file_url}" type="{physical_file.mime_type}"></video>')
+        case 'audio':
+            body_parts.append(f'<audio controls><source src="{file_url}" type="{physical_file.mime_type}"></audio>')
+        case 'image':
+            body_parts.append(f'<img src="{file_url}" alt="{virtual_file.name}" style="max-width:100%; height:auto;">')
+
+    meta_tags_content = '\n'.join(meta_tags_parts)
+    body_content = '\n'.join(body_parts)
+
+    return f'''
+            <!DOCTYPE html>
+            <html lang='es'>
+            <head>
+            {meta_tags_content}
+            </head>
+            <body>
+            {body_content}
+            </body>
+            </html>
+        '''
+
+
 async def get_file(
     file_id: str,
     physical_file_repository: PhysicalFileRepository,
@@ -300,6 +378,32 @@ async def get_file(
         raise FileNotFoundError(config.file_not_found_error_message)
 
     return physical_file, virtual_file
+
+
+async def get_file_thumbnail_path(
+    file_id: str,
+    physical_file_repository: PhysicalFileRepository,
+    virtual_file_repository: VirtualFileRepository
+) -> Path:
+    if (
+        not (virtual_file := await virtual_file_repository.get_by_id(file_id))
+        or
+        not virtual_file.physical_file_id
+        or
+        not (physical_file := await physical_file_repository.get_by_id(virtual_file.physical_file_id))
+    ):
+        raise FileNotFoundError(config.file_not_found_error_message)
+
+    main_type = physical_file.mime_type.split('/')[0]
+
+    if main_type in {'image', 'video'}:
+        return (config.thumbnails_path / str(physical_file.mongo_id)).with_suffix(config.thumbnails_extension)
+
+    if main_type == 'audio':
+        return config.audio_thumbnail_path
+
+    return config.default_thumbnail_path
+
 
 async def get_files(
     virtual_file_repository: VirtualFileRepository,

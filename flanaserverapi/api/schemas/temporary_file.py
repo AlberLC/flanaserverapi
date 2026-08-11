@@ -9,7 +9,6 @@ from api.schemas.bases import SecretIdModel
 class TemporaryFile(SecretIdModel):
     name: str
     size: int
-    mime_type: str
     total_chunks: int
     # noinspection PyTypeChecker
     received_chunks: Annotated[set[int], PlainSerializer(list)] = set()

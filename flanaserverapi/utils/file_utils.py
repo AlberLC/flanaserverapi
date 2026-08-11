@@ -1,8 +1,9 @@
-import mimetypes
 import subprocess
 import urllib.parse
 import uuid
 from pathlib import Path
+
+import magic
 
 from config import config
 from exceptions import ThumbnailError
@@ -21,13 +22,17 @@ def ensure_valid_file_name(file_name: str | None) -> str:
     return f'{file_stem}{file_name_path.suffix}'
 
 
-def get_mime_type(file: str | Path) -> str:
-    mime_type, _ = mimetypes.guess_type(str(file))
+def extract_video_frame(file_path: str | Path) -> bytes:
+    cmd = ['ffmpeg', '-i', str(file_path), '-vframes', '1', '-f', 'image2pipe', '-vcodec', 'png', 'pipe:1']
 
-    if not mime_type:
-        mime_type = config.mime_types['bytes']
+    try:
+        return subprocess.run(cmd, capture_output=True, check=True).stdout
+    except subprocess.CalledProcessError as e:
+        raise ThumbnailError from e
 
-    return mime_type
+
+def get_mime_type(file_path: str | Path) -> str:
+    return magic.from_file(str(file_path), mime=True)
 
 
 def get_video_resolution(file_path: str | Path) -> tuple[int, int]:
@@ -47,15 +52,6 @@ def get_video_resolution(file_path: str | Path) -> tuple[int, int]:
         return config.default_resolution
     else:
         return width, height
-
-
-def get_video_thumbnail(file_path: str | Path) -> bytes:
-    cmd = ['ffmpeg', '-i', str(file_path), '-vframes', '1', '-f', 'image2pipe', '-vcodec', 'png', 'pipe:1']
-
-    try:
-        return subprocess.run(cmd, capture_output=True, check=True).stdout
-    except subprocess.CalledProcessError as e:
-        raise ThumbnailError from e
 
 
 def replace_non_alpha_with_underscore(text: str) -> str:

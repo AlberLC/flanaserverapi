@@ -5,11 +5,10 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
 from api import api_setup
 from api.middlewares.limit_upload_size_middleware import LimitUploadSizeMiddleware
-from api.routers import apps_router, embeds_router, files_router, ping_router, websockets_router
+from api.routers import apps_router, files_router, ping_router, websockets_router
 from config import config
 from database import database_setup
 from workers import workers_main
@@ -26,16 +25,9 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
 app = FastAPI(lifespan=lifespan, root_path=config.api_root, root_path_in_servers=False)
 
 app.include_router(apps_router.router)
-app.include_router(embeds_router.router)
 app.include_router(files_router.router)
 app.include_router(ping_router.router)
 app.include_router(websockets_router.router)
-
-app.mount(
-    f'/{config.static_path.name}',
-    StaticFiles(directory=config.static_path, check_dir=False),
-    config.static_path.name
-)
 
 app.add_middleware(LimitUploadSizeMiddleware, config.upload_max_size)
 

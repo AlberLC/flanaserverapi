@@ -84,7 +84,7 @@ class MongoSettings(AppSettings):
 
 
 class PathSettings(AppSettings):
-    audio_thumbnail_name: str = 'audio_thumbnail.jpg'
+    audio_thumbnail_name: str = 'audio_thumbnail.webp'
     default_thumbnail_name: str = 'default_thumbnail.webp'
 
     root_path: Path = Path(__file__).parent
@@ -102,11 +102,7 @@ class PathSettings(AppSettings):
     files_path: Path = storage_path / 'files'
     physical_files_path: Path = files_path / 'physical_files'
     temporary_files_path: Path = files_path / 'temporary_files'
-
-    static_path: Path = storage_path / 'static'
-    static_images_path: Path = static_path / 'images'
-    static_audio_thumbnail_path: Path = static_images_path / audio_thumbnail_name
-    static_default_thumbnail_path: Path = static_images_path / default_thumbnail_name
+    thumbnails_path: Path = files_path / 'thumbnails'
 
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
@@ -134,6 +130,10 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     system_info_identifying_attributes: tuple[str, ...] = ('username', 'hostname', 'mac_address', 'ip_geolocation')
     temporary_files_cleanup_protection_period: datetime.timedelta = datetime.timedelta(minutes=5)
     temporary_files_ttl: datetime.timedelta = datetime.timedelta(hours=2)
+    thumbnails_extension: str = '.webp'
+    thumbnails_max_size: int = 640
+    thumbnails_method: int = 6
+    thumbnails_quality: int = 85
     upload_chunk_size: int = 5_242_880
     upload_max_size: int = 3_000_000_000
 

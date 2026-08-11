@@ -1,4 +1,3 @@
-import shutil
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -11,8 +10,6 @@ from config import config
 @asynccontextmanager
 async def initialize_api() -> AsyncGenerator[dict[str, Any]]:
     initialize_directories()
-    shutil.copy2(config.audio_thumbnail_path, config.static_images_path)
-    shutil.copy2(config.default_thumbnail_path, config.static_images_path)
 
     http_session = aiohttp.ClientSession()
 
@@ -26,4 +23,4 @@ def initialize_directories() -> None:
     config.apps_path.mkdir(parents=True, exist_ok=True)
     config.physical_files_path.mkdir(parents=True, exist_ok=True)
     config.temporary_files_path.mkdir(parents=True, exist_ok=True)
-    config.static_images_path.mkdir(parents=True, exist_ok=True)
+    config.thumbnails_path.mkdir(parents=True, exist_ok=True)

@@ -1,8 +1,9 @@
+import mimetypes
 import urllib.parse
 from typing import Annotated
 
-from fastapi.responses import FileResponse, Response
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, status
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
 from api import responses
 from api.routers import uploads_router
@@ -70,6 +71,52 @@ async def get_file_content(
                 'X-Accel-Redirect': f'/internal/files/{urllib.parse.quote(physical_file_name)}'
             }
         )
+
+
+@router.get('/{file_id}/embed', response_model=None, response_class=Response)
+async def get_file_embed_page(
+    file_id: str,
+    user_agent: Annotated[str, Header()],
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)],
+    request: Request
+) -> HTMLResponse | RedirectResponse:
+    file_url = request.url_for('get_file_content', file_id=file_id)
+
+    if 'bot' not in user_agent.lower():
+        return RedirectResponse(file_url)
+
+    try:
+        return HTMLResponse(
+            await file_service.generate_embed_page(
+                file_id,
+                file_url,
+                physical_file_repository,
+                virtual_file_repository,
+                request
+            )
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@router.get(
+    '/{file_id}/thumbnail',
+    response_class=FileResponse,
+    responses={status.HTTP_200_OK: {'content': {mimetypes.types_map[config.thumbnails_extension]: {}}}}
+)
+async def get_file_thumbnail(
+    file_id: str,
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+) -> FileResponse:
+    try:
+        return FileResponse(
+            await file_service.get_file_thumbnail_path(file_id, physical_file_repository, virtual_file_repository),
+            media_type=mimetypes.types_map[config.thumbnails_extension]
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
 @router.delete('/{file_id}', status_code=status.HTTP_204_NO_CONTENT)

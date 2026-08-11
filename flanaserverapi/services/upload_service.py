@@ -2,10 +2,12 @@ import asyncio
 import datetime
 import filecmp
 import hashlib
+import io
 import math
 from pathlib import Path
 
 import pymongo.errors
+from PIL import Image, ImageOps
 
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
@@ -52,7 +54,7 @@ async def _create_physical_file(
             PhysicalFile(
                 hash=file_hash,
                 size=temporary_file.size,
-                mime_type=temporary_file.mime_type,
+                mime_type=await asyncio.to_thread(file_utils.get_mime_type, temporary_file_path),
                 virtual_file_ids={virtual_file_id}
             )
         )
@@ -84,11 +86,35 @@ async def _create_virtual_file(
             break
 
     physical_file = await _create_physical_file(temporary_file, virtual_file.mongo_id, physical_file_repository)
-
+    _create_thumbnail(physical_file)
     virtual_file.physical_file_id = physical_file.mongo_id
     await virtual_file_repository.update_one_by_id(virtual_file)
 
     return virtual_file
+
+
+def _create_thumbnail(physical_file: PhysicalFile) -> None:
+    main_type = physical_file.mime_type.split('/')[0]
+
+    if main_type not in {'image', 'video'}:
+        return
+
+    physical_file_id_str = str(physical_file.mongo_id)
+    physical_file_path = config.physical_files_path / physical_file_id_str
+
+    if main_type == 'video':
+        image_source = io.BytesIO(file_utils.extract_video_frame(physical_file_path))
+    else:
+        image_source = physical_file_path
+
+    with Image.open(image_source) as image:
+        image = ImageOps.exif_transpose(image)
+        image.thumbnail((config.thumbnails_max_size, config.thumbnails_max_size), Image.Resampling.LANCZOS)
+        image.save(
+            (config.thumbnails_path / physical_file_id_str).with_suffix(config.thumbnails_extension),
+            quality=config.thumbnails_quality,
+            method=config.thumbnails_method
+        )
 
 
 async def _store_chunk(
@@ -196,7 +222,6 @@ async def create_upload(
                 TemporaryFile(
                     name=create_upload_request.file_name,
                     size=create_upload_request.file_size,
-                    mime_type=create_upload_request.file_mime_type,
                     total_chunks=math.ceil(create_upload_request.file_size / config.upload_chunk_size),
                     expires_at=expires_at
                 )
