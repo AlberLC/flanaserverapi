@@ -2,18 +2,27 @@ import datetime
 from typing import Annotated
 
 from bson import ObjectId
-from pydantic import Field, PlainSerializer
+from pydantic import BaseModel, Field, PlainSerializer
 
 from api.schemas.bases import SecretIdModel
 
 
-class VirtualFileResponse(SecretIdModel):
+class VirtualFileBase(SecretIdModel):
     name: str
-    url: str
-    embed_url: str
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
     expires_at: datetime.datetime | None
 
 
-class VirtualFile(VirtualFileResponse):
+class VirtualFile(VirtualFileBase):
     physical_file_id: Annotated[ObjectId, PlainSerializer(str, when_used='json')] | None = None
+
+
+class VirtualFileResponse(VirtualFileBase):
+    url: str
+    embed_url: str
+    thumbnail_url: str
+
+
+class VirtualFiles(BaseModel):
+    files: list[VirtualFileResponse]
+    total: int

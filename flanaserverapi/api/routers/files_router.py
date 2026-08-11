@@ -1,11 +1,12 @@
 import urllib.parse
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse, Response
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, status
 
 from api import responses
 from api.routers import uploads_router
+from api.schemas.virtual_files import VirtualFileResponse, VirtualFiles
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
@@ -16,8 +17,29 @@ router = APIRouter(prefix='/files', tags=['files'])
 router.include_router(uploads_router.router)
 
 
-@router.get('/{file_id}', response_model=None, response_class=Response, responses=responses.bytes_responses)
+@router.get('')
+async def get_files(
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)],
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1)] = config.files_default_limit
+) -> VirtualFiles:
+    return await file_service.get_files(virtual_file_repository, skip, limit)
+
+
+@router.get('/{file_id}')
 async def get_file(
+    file_id: str,
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+) -> VirtualFileResponse:
+    try:
+        return await file_service.get_virtual_file_response(file_id, physical_file_repository, virtual_file_repository)
+    except FileNotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@router.get('/{file_id}/content', response_model=None, response_class=Response, responses=responses.bytes_responses)
+async def get_file_content(
     file_id: str,
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]

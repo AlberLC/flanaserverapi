@@ -122,6 +122,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     file_name_min_length: int = 10
     file_not_found_error_message: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
+    files_default_limit: int = 20
     files_max_storage_size: int = 20_000_000_000
     id_length: int = 6
     max_client_connections: int = 1000

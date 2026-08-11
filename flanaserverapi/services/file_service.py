@@ -9,7 +9,7 @@ from bson import ObjectId
 from api.schemas.bases import MongoModel
 from api.schemas.physical_file import PhysicalFile
 from api.schemas.temporary_file import TemporaryFile
-from api.schemas.virtual_files import VirtualFile
+from api.schemas.virtual_files import VirtualFile, VirtualFileResponse, VirtualFiles
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.repository import Repository
@@ -221,6 +221,15 @@ async def clean_up_files(
     await _clean_up_virtual_files(physical_file_repository, virtual_file_repository)
 
 
+def create_virtual_file_response(virtual_file: VirtualFile) -> VirtualFileResponse:
+    return VirtualFileResponse(
+        **virtual_file.model_dump(by_alias=True),
+        url=f'/files/{virtual_file.mongo_id}/content',
+        embed_url=f'/files/{virtual_file.mongo_id}/embed',
+        thumbnail_url=f'/files/{virtual_file.mongo_id}/thumbnail'
+    )
+
+
 async def delete_file(
     file_id: str,
     physical_file_repository: PhysicalFileRepository,
@@ -291,3 +300,24 @@ async def get_file(
         raise FileNotFoundError(config.file_not_found_error_message)
 
     return physical_file, virtual_file
+
+async def get_files(
+    virtual_file_repository: VirtualFileRepository,
+    skip: int = 0,
+    limit: int | None = None
+) -> VirtualFiles:
+    return VirtualFiles(
+        files=[
+            create_virtual_file_response(virtual_file)
+            async for virtual_file in virtual_file_repository.iter(skip=skip, limit=limit)
+        ],
+        total=await virtual_file_repository.count()
+    )
+
+
+async def get_virtual_file_response(
+    file_id: str,
+    physical_file_repository: PhysicalFileRepository,
+    virtual_file_repository: VirtualFileRepository,
+) -> VirtualFileResponse:
+    return create_virtual_file_response((await get_file(file_id, physical_file_repository, virtual_file_repository))[1])

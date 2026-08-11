@@ -12,7 +12,7 @@ from api.schemas.create_upload_response import CreateUploadResponse
 from api.schemas.physical_file import PhysicalFile
 from api.schemas.temporary_file import TemporaryFile
 from api.schemas.upload_state import UploadState
-from api.schemas.virtual_files import VirtualFile
+from api.schemas.virtual_files import VirtualFile, VirtualFileResponse
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
@@ -75,8 +75,6 @@ async def _create_virtual_file(
                 VirtualFile(
                     _id=mongo_id,
                     name=temporary_file.name,
-                    url=f'/files/{mongo_id}',
-                    embed_url=f'/embeds/{mongo_id}',
                     expires_at=temporary_file.expires_at
                 )
             )
@@ -149,13 +147,13 @@ async def complete_upload(
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
-) -> VirtualFile:
+) -> VirtualFileResponse:
     if not (temporary_file := await temporary_file_repository.get_by_id(upload_id)):
         raise UploadNotFoundError
 
     if temporary_file.virtual_file_id:
         if virtual_file := await virtual_file_repository.get_by_id(temporary_file.virtual_file_id):
-            return virtual_file
+            return file_service.create_virtual_file_response(virtual_file)
         else:
             raise UploadNotFoundError
 
@@ -176,7 +174,7 @@ async def complete_upload(
         temporary_file.is_finalizing = False
         await temporary_file_repository.update_one_by_id(temporary_file)
 
-    return virtual_file
+    return file_service.create_virtual_file_response(virtual_file)
 
 
 async def create_upload(
