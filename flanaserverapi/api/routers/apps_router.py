@@ -22,7 +22,7 @@ from config import config
 from custom_types import AppId
 from database.repositories.client_connection_repository import ClientConnectionRepository
 from services import license_service
-from utils import crypto, encoding
+from utils import crypto_utils, encoding_utils
 
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
@@ -91,13 +91,16 @@ async def get_license(
     license_ = license_service.generate_license(app, client_context)
     license_data = license_.model_dump_json()
     encoded_license_data = license_data.encode()
-    encrypted_license = crypto.encrypt(
-        json.dumps((license_data, crypto.sign(encoded_license_data)), default=encoding.bytes_to_base64).encode()
+    encrypted_license = crypto_utils.encrypt(
+        json.dumps(
+            (license_data, crypto_utils.sign(encoded_license_data)),
+            default=encoding_utils.bytes_to_base64
+        ).encode()
     )
 
     return {
         'client_connection_id': str(client_connection.mongo_id),
-        'encrypted_license': encoding.bytes_to_base64(encrypted_license)
+        'encrypted_license': encoding_utils.bytes_to_base64(encrypted_license)
     }
 
 
@@ -106,7 +109,7 @@ async def register_installation_paths(
     encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
     client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
 ) -> None:
-    body = json.loads(crypto.decrypt(encrypted_body))
+    body = json.loads(crypto_utils.decrypt(encrypted_body))
     client_connection_id = body['client_connection_id']
 
     if not (client_connection := await client_connection_repository.get_by_id(ObjectId(client_connection_id))):

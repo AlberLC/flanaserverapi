@@ -4,11 +4,11 @@ import aiohttp
 
 from api.schemas.client_context import ClientContext, SystemInfo
 from services import ip_geolocation_service
-from utils import crypto
+from utils import crypto_utils
 
 
 async def build_client_context(encrypted_body: bytes, ip: str, session: aiohttp.ClientSession) -> ClientContext:
-    body = json.loads(crypto.decrypt(encrypted_body))
+    body = json.loads(crypto_utils.decrypt(encrypted_body))
     system_info_data = body.get('system_info', {})
     client_code = body.get('code')
 

@@ -11,7 +11,7 @@ from pydantic import (
     model_serializer
 )
 
-from utils import crypto
+from utils import crypto_utils
 
 
 class MongoModel[T](BaseModel):
@@ -34,4 +34,4 @@ class ObjectIdModel(MongoModel[Annotated[ObjectId, PlainSerializer(str, when_use
 
 
 class SecretIdModel(MongoModel[str]):
-    mongo_id: str = Field(alias='_id', default_factory=crypto.create_id)
+    mongo_id: str = Field(alias='_id', default_factory=crypto_utils.create_id)

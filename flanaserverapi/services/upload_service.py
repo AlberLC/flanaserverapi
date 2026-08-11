@@ -19,7 +19,7 @@ from database.repositories.temporary_file_repository import TemporaryFileReposit
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from exceptions import IncompleteUploadError, InvalidChunkError, UploadFinalizedError, UploadNotFoundError
 from services import file_service
-from utils import crypto
+from utils import crypto_utils, file_utils
 
 
 async def _create_physical_file(
@@ -30,7 +30,7 @@ async def _create_physical_file(
     temporary_file_path = config.temporary_files_path / temporary_file.mongo_id
 
     try:
-        file_hash = await asyncio.to_thread(crypto.hash_file, temporary_file_path)
+        file_hash = await asyncio.to_thread(crypto_utils.hash_file, temporary_file_path)
     except FileNotFoundError:
         raise UploadNotFoundError
 
@@ -68,7 +68,7 @@ async def _create_virtual_file(
     virtual_file_repository: VirtualFileRepository
 ) -> VirtualFile:
     while True:
-        mongo_id = crypto.create_id()
+        mongo_id = crypto_utils.create_id()
 
         try:
             virtual_file = await virtual_file_repository.insert_one(
