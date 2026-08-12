@@ -1,5 +1,5 @@
 from api.schemas.client_connections import ClientConnection
-from database.client import database
+from database.database_client import database
 from database.repositories.repository import Repository
 
 

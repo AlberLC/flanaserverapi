@@ -1,5 +1,5 @@
 from api.schemas.temporary_file import TemporaryFile
-from database.client import database
+from database.database_client import database
 from database.repositories.repository import Repository
 
 

@@ -1,5 +1,5 @@
 from config import config
-from database.client import database
+from database.database_client import database
 
 
 async def check_collection_exists(name: str) -> bool:

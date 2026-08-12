@@ -1,5 +1,5 @@
 from api.schemas.virtual_files import VirtualFile
-from database.client import database
+from database.database_client import database
 from database.repositories.repository import Repository
 
 
