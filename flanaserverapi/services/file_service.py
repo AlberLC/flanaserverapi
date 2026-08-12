@@ -1,51 +1,45 @@
 import asyncio
 import datetime
 from collections import defaultdict
-from collections.abc import AsyncGenerator, Iterable, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from pathlib import Path
 
 from bson import ObjectId
 from fastapi import Request
 from fastapi.datastructures import URL
 
-from api.schemas.bases import MongoModel
 from api.schemas.physical_file import PhysicalFile
 from api.schemas.temporary_file import TemporaryFile
 from api.schemas.virtual_files import VirtualFile, VirtualFileResponse, VirtualFiles
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
-from database.repositories.repository import Repository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from utils import file_utils
 
 
-async def _clean_up_files(files_path: Path, valid_files_generator: AsyncGenerator[MongoModel]) -> None:
-    file_ids = {str(file.mongo_id) async for file in valid_files_generator}
-
+async def _clean_up_files(ids: set[str], files_path: Path) -> None:
     for file_path in files_path.iterdir():
-        if not file_path.is_file() or file_path.name in file_ids:
-            continue
-
-        try:
-            file_path.unlink()
-        except PermissionError:
-            pass
+        if file_path.is_file() and file_path.stem not in ids:
+            await _delete_file(file_path)
 
 
 async def _clean_up_physical_files(
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> None:
-    await _clean_up_files(
-        config.physical_files_path,
-        _iter_valid_physical_files(physical_file_repository, virtual_file_repository)
-    )
+    physical_file_ids = {
+        str(physical_file.mongo_id)
+        async for physical_file in _iter_valid_physical_files(physical_file_repository, virtual_file_repository)
+    }
+    await _clean_up_files(physical_file_ids, config.physical_files_path)
+    await _clean_up_files(physical_file_ids, config.thumbnails_path)
 
 
 async def _clean_up_temporary_files(temporary_file_repository: TemporaryFileRepository) -> None:
     await _clean_up_files(
-        config.temporary_files_path, _iter_valid_temporary_files(temporary_file_repository)
+        {temporary_file.mongo_id async for temporary_file in _iter_valid_temporary_files(temporary_file_repository)},
+        config.temporary_files_path
     )
 
 
@@ -66,32 +60,26 @@ async def _clean_up_virtual_files(
     await virtual_file_repository.delete({'_id': {'$in': virtual_file_ids_to_delete}})
 
 
-async def _delete_files(files: Iterable[MongoModel], files_path: Path, repository: Repository[MongoModel]) -> None:
-    ids_to_delete = []
-
-    for file in files:
-        ids_to_delete.append(file.mongo_id)
-
-        try:
-            await asyncio.to_thread((files_path / str(file.mongo_id)).unlink, missing_ok=True)
-        except PermissionError:
-            pass
-
-    await repository.delete({'_id': {'$in': ids_to_delete}})
+async def _delete_file(file_path: Path) -> None:
+    try:
+        await asyncio.to_thread(file_path.unlink, missing_ok=True)
+    except PermissionError:
+        pass
 
 
-async def _delete_physical_files(
-    physical_files: Iterable[PhysicalFile],
-    physical_file_repository: PhysicalFileRepository
-) -> None:
-    await _delete_files(physical_files, config.physical_files_path, physical_file_repository)
+async def _delete_physical_files(ids: Sequence[ObjectId], physical_file_repository: PhysicalFileRepository) -> None:
+    for id in ids:
+        await _delete_file(build_physical_file_path(id))
+        await _delete_file(build_thumbnail_path(id))
+
+    await physical_file_repository.delete({'_id': {'$in': ids}})
 
 
-async def _delete_temporary_files(
-    temporary_files: Iterable[TemporaryFile],
-    temporary_file_repository: TemporaryFileRepository
-) -> None:
-    await _delete_files(temporary_files, config.temporary_files_path, temporary_file_repository)
+async def _delete_temporary_files(ids: Sequence[str], temporary_file_repository: TemporaryFileRepository) -> None:
+    for id in ids:
+        await _delete_file(build_temporary_file_path(id))
+
+    await temporary_file_repository.delete({'_id': {'$in': ids}})
 
 
 async def _delete_virtual_files(
@@ -106,10 +94,10 @@ async def _delete_virtual_files(
         )
         physical_files_by_id = {
             physical_file.mongo_id: physical_file
-            for physical_file in await physical_file_repository.get({'_id': {'$in': physical_file_ids}})
+            async for physical_file in physical_file_repository.iter({'_id': {'$in': physical_file_ids}})
         }
 
-    physical_files_to_delete = []
+    physical_file_ids_to_delete = []
     virtual_file_ids_to_delete = []
     referenced_virtual_file_ids_to_pull = defaultdict(list)
 
@@ -127,10 +115,10 @@ async def _delete_virtual_files(
                 {'_id': physical_file_id}, {'$pull': {'virtual_file_ids': {'$in': virtual_file_ids}}}
             )
         else:
-            physical_files_to_delete.append(physical_file)
+            physical_file_ids_to_delete.append(physical_file.mongo_id)
 
     await virtual_file_repository.delete({'_id': {'$in': virtual_file_ids_to_delete}})
-    await _delete_physical_files(physical_files_to_delete, physical_file_repository)
+    await _delete_physical_files(physical_file_ids_to_delete, physical_file_repository)
 
 
 async def _get_used_storage(
@@ -154,7 +142,8 @@ async def _iter_valid_physical_files(
     virtual_file_repository: VirtualFileRepository
 ) -> AsyncGenerator[PhysicalFile]:
     now = datetime.datetime.now(datetime.UTC)
-    physical_files_to_delete_by_id = {}
+    physical_file_ids_to_delete = []
+    physical_files_by_id = {}
     virtual_files_to_delete = []
 
     async for physical_file in physical_file_repository.iter():
@@ -162,9 +151,10 @@ async def _iter_valid_physical_files(
             {'_id': {'$in': tuple(physical_file.virtual_file_ids)}}
         )
 
-        if not (config.physical_files_path / str(physical_file.mongo_id)).is_file():
+        if not build_physical_file_path(physical_file.mongo_id).is_file():
             virtual_files_to_delete.extend(referenced_virtual_files)
-            physical_files_to_delete_by_id[physical_file.mongo_id] = physical_file
+            physical_file_ids_to_delete.append(physical_file.mongo_id)
+            physical_files_by_id[physical_file.mongo_id] = physical_file
             continue
 
         has_valid_reference = False
@@ -172,46 +162,58 @@ async def _iter_valid_physical_files(
         for virtual_file in referenced_virtual_files:
             if virtual_file.expires_at and now >= virtual_file.expires_at:
                 virtual_files_to_delete.append(virtual_file)
+                physical_files_by_id[physical_file.mongo_id] = physical_file
             else:
                 has_valid_reference = True
 
         if has_valid_reference:
             yield physical_file
         else:
-            physical_files_to_delete_by_id[physical_file.mongo_id] = physical_file
+            physical_file_ids_to_delete.append(physical_file.mongo_id)
 
     await _delete_virtual_files(
         virtual_files_to_delete,
         physical_file_repository,
         virtual_file_repository,
-        physical_files_to_delete_by_id
+        physical_files_by_id
     )
-    await _delete_physical_files(physical_files_to_delete_by_id.values(), physical_file_repository)
+    await _delete_physical_files(physical_file_ids_to_delete, physical_file_repository)
 
 
 async def _iter_valid_temporary_files(
     temporary_file_repository: TemporaryFileRepository
 ) -> AsyncGenerator[TemporaryFile]:
     now = datetime.datetime.now(datetime.UTC)
-    temporary_files_to_delete = []
+    temporary_file_ids_to_delete = []
 
     async for temporary_file in temporary_file_repository.iter():
-        file_path = config.temporary_files_path / temporary_file.mongo_id
         if (
             temporary_file.virtual_file_id
             or
             now >= temporary_file.created_at + config.temporary_files_cleanup_protection_period
             and
-            not file_path.is_file()
+            not build_temporary_file_path(temporary_file.mongo_id).is_file()
             or
             now >= temporary_file.created_at + config.temporary_files_ttl
         ):
-            temporary_files_to_delete.append(temporary_file)
+            temporary_file_ids_to_delete.append(temporary_file.mongo_id)
             continue
 
         yield temporary_file
 
-    await _delete_temporary_files(temporary_files_to_delete, temporary_file_repository)
+    await _delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
+
+
+def build_physical_file_path(id: ObjectId) -> Path:
+    return config.physical_files_path / str(id)
+
+
+def build_temporary_file_path(id: str) -> Path:
+    return config.temporary_files_path / id
+
+
+def build_thumbnail_path(id: ObjectId) -> Path:
+    return (config.thumbnails_path / str(id)).with_suffix(config.thumbnails_extension)
 
 
 async def clean_up_files(
@@ -265,9 +267,8 @@ async def enforce_storage_limit(
         if used_storage <= config.files_max_storage_size:
             break
 
-    virtual_files = await virtual_file_repository.get({'_id': {'$in': virtual_file_ids_to_delete}})
     await _delete_virtual_files(
-        virtual_files,
+        await virtual_file_repository.get({'_id': {'$in': virtual_file_ids_to_delete}}),
         physical_file_repository,
         virtual_file_repository,
         physical_files_to_delete_by_id
@@ -276,16 +277,16 @@ async def enforce_storage_limit(
     if used_storage <= config.files_max_storage_size:
         return
 
-    temporary_files_to_delete = []
+    temporary_file_ids_to_delete = []
 
     async for temporary_file in temporary_file_repository.iter({'virtual_file_id': None}, sort_keys=('created_at',)):
-        temporary_files_to_delete.append(temporary_file)
+        temporary_file_ids_to_delete.append(temporary_file.mongo_id)
         used_storage -= temporary_file.size
 
         if used_storage <= config.files_max_storage_size:
             break
 
-    await _delete_temporary_files(temporary_files_to_delete, temporary_file_repository)
+    await _delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
 
 
 async def generate_embed_page(
@@ -316,7 +317,7 @@ async def generate_embed_page(
     ]
 
     if main_type == 'video':
-        width, height = file_utils.get_video_resolution(config.physical_files_path / str(physical_file.mongo_id))
+        width, height = file_utils.get_video_resolution(build_physical_file_path(physical_file.mongo_id))
         meta_tags_parts.extend(
             (
                 f'<meta property="og:video" content="{file_url}" />',
@@ -397,7 +398,10 @@ async def get_file_thumbnail_path(
     main_type = physical_file.mime_type.split('/')[0]
 
     if main_type in {'image', 'video'}:
-        return (config.thumbnails_path / str(physical_file.mongo_id)).with_suffix(config.thumbnails_extension)
+        if not (thumbnail_path := build_thumbnail_path(physical_file.mongo_id)).is_file():
+            raise FileNotFoundError(config.file_not_found_error_message)
+
+        return thumbnail_path
 
     if main_type == 'audio':
         return config.audio_thumbnail_path

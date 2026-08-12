@@ -54,11 +54,9 @@ async def get_file_content(
     except FileNotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
-    physical_file_name = str(physical_file.mongo_id)
-
     if config.environment is Environment.DEVELOPMENT:
         return FileResponse(
-            config.physical_files_path / physical_file_name,
+            file_service.build_physical_file_path(physical_file.mongo_id),
             media_type=physical_file.mime_type,
             filename=virtual_file.name,
             content_disposition_type='inline'
@@ -68,7 +66,7 @@ async def get_file_content(
             headers={
                 'Content-Type': physical_file.mime_type,
                 'Content-Disposition': f"inline; filename*=utf-8''{urllib.parse.quote(virtual_file.name)}",
-                'X-Accel-Redirect': f'/internal/files/{urllib.parse.quote(physical_file_name)}'
+                'X-Accel-Redirect': f'/internal/files/{physical_file.mongo_id}'
             }
         )
 

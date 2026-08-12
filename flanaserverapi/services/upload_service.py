@@ -29,7 +29,7 @@ async def _create_physical_file(
     virtual_file_id: str,
     physical_file_repository: PhysicalFileRepository
 ) -> PhysicalFile:
-    temporary_file_path = config.temporary_files_path / temporary_file.mongo_id
+    temporary_file_path = file_service.build_temporary_file_path(temporary_file.mongo_id)
 
     try:
         file_hash = await asyncio.to_thread(crypto_utils.hash_file, temporary_file_path)
@@ -42,7 +42,7 @@ async def _create_physical_file(
         await asyncio.to_thread(
             filecmp.cmp,
             temporary_file_path,
-            config.physical_files_path / str(physical_file.mongo_id),
+            file_service.build_physical_file_path(physical_file.mongo_id),
             shallow=False
         )
     ):
@@ -59,7 +59,7 @@ async def _create_physical_file(
             )
         )
 
-    await asyncio.to_thread(temporary_file_path.move, config.physical_files_path / str(physical_file.mongo_id))
+    await asyncio.to_thread(temporary_file_path.move, file_service.build_physical_file_path(physical_file.mongo_id))
 
     return physical_file
 
@@ -99,8 +99,7 @@ def _create_thumbnail(physical_file: PhysicalFile) -> None:
     if main_type not in {'image', 'video'}:
         return
 
-    physical_file_id_str = str(physical_file.mongo_id)
-    physical_file_path = config.physical_files_path / physical_file_id_str
+    physical_file_path = file_service.build_physical_file_path(physical_file.mongo_id)
 
     if main_type == 'video':
         image_source = io.BytesIO(file_utils.extract_video_frame(physical_file_path))
@@ -111,7 +110,7 @@ def _create_thumbnail(physical_file: PhysicalFile) -> None:
         image = ImageOps.exif_transpose(image)
         image.thumbnail((config.thumbnails_max_size, config.thumbnails_max_size), Image.Resampling.LANCZOS)
         image.save(
-            (config.thumbnails_path / physical_file_id_str).with_suffix(config.thumbnails_extension),
+            file_service.build_thumbnail_path(physical_file.mongo_id),
             quality=config.thumbnails_quality,
             method=config.thumbnails_method
         )
@@ -123,7 +122,7 @@ async def _store_chunk(
     chunk_bytes: bytes,
     temporary_file_repository: TemporaryFileRepository
 ) -> TemporaryFile | None:
-    await asyncio.to_thread(_write_chunk, chunk_index, chunk_bytes, config.temporary_files_path / upload_id)
+    await asyncio.to_thread(_write_chunk, chunk_index, chunk_bytes, file_service.build_temporary_file_path(upload_id))
     await temporary_file_repository.partial_update_one(
         {'_id': upload_id}, {'$addToSet': {'received_chunks': chunk_index}}
     )
@@ -165,7 +164,7 @@ async def cancel_upload(upload_id: str, temporary_file_repository: TemporaryFile
         raise UploadNotFoundError
 
     await temporary_file_repository.delete_by_id(upload_id)
-    await asyncio.to_thread((config.temporary_files_path / upload_id).unlink)
+    await asyncio.to_thread(file_service.build_temporary_file_path(upload_id).unlink)
 
 
 async def complete_upload(
