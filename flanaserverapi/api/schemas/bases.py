@@ -15,7 +15,7 @@ from utils import crypto_utils
 
 
 class MongoModel[T](BaseModel):
-    mongo_id: T | None = Field(alias='_id', default=None)
+    mongo_id: T | Any = Field(alias='_id', default=None)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
