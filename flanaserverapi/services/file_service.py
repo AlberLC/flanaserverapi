@@ -188,18 +188,19 @@ async def _iter_valid_temporary_files(
 
     async for temporary_file in temporary_file_repository.iter():
         if (
-            temporary_file.virtual_file_id
-            or
-            now >= temporary_file.created_at + config.temporary_files_cleanup_protection_period
+            now < temporary_file.created_at + config.temporary_files_ttl
             and
-            not build_temporary_file_path(temporary_file.mongo_id).is_file()
-            or
-            now >= temporary_file.created_at + config.temporary_files_ttl
+            (
+                now < temporary_file.created_at + config.temporary_files_cleanup_protection_period
+                or
+                temporary_file.virtual_file_id
+                or
+                build_temporary_file_path(temporary_file.mongo_id).is_file()
+            )
         ):
+            yield temporary_file
+        else:
             temporary_file_ids_to_delete.append(temporary_file.mongo_id)
-            continue
-
-        yield temporary_file
 
     await _delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
 
