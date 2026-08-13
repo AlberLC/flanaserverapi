@@ -132,7 +132,8 @@ async def _get_used_storage(
         used_storage += physical_file.size
 
     async for temporary_file in _iter_valid_temporary_files(temporary_file_repository):
-        used_storage += temporary_file.size
+        if not temporary_file.virtual_file_id:
+            used_storage += temporary_file.size
 
     return used_storage
 
