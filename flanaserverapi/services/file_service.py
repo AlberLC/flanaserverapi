@@ -15,6 +15,7 @@ from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
+from database.transactions import mongo_transaction
 from utils import file_utils
 
 
@@ -248,6 +249,7 @@ async def delete_file(
     await _delete_virtual_files((virtual_file,), physical_file_repository, virtual_file_repository)
 
 
+@mongo_transaction
 async def enforce_storage_limit(
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
