@@ -15,6 +15,7 @@ from api.dependencies.app_dependencies import (
     get_http_client_context
 )
 from api.dependencies.http_dependencies import check_bearer_token
+from api.dependencies.repository_dependencies import get_repository
 from api.schemas.app import App
 from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
 from api.schemas.client_context import ClientContext
@@ -29,7 +30,10 @@ router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
 @router.get('/client-connections/latest', dependencies=[Depends(check_bearer_token)], include_in_schema=False)
 async def get_last_client_connections(
-    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)],
+    client_connection_repository: Annotated[
+        ClientConnectionRepository,
+        Depends(get_repository(ClientConnectionRepository))
+    ],
     limit: int | None = None,
     after_id: str | None = None
 ) -> list[ClientConnectionSummary]:
@@ -80,7 +84,10 @@ async def get_license(
     app_id: AppId,
     client_context: Annotated[ClientContext, Depends(get_http_client_context)],
     app: Annotated[App, Depends(get_app)],
-    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
+    client_connection_repository: Annotated[
+        ClientConnectionRepository,
+        Depends(get_repository(ClientConnectionRepository))
+    ]
 ) -> dict[str, str]:
     client_connection = await client_connection_repository.insert_one(
         ClientConnection(app_id=app_id, system_info=client_context.system_info),
@@ -107,7 +114,10 @@ async def get_license(
 @router.patch('/installation_paths', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 async def register_installation_paths(
     encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
-    client_connection_repository: Annotated[ClientConnectionRepository, Depends(ClientConnectionRepository)]
+    client_connection_repository: Annotated[
+        ClientConnectionRepository,
+        Depends(get_repository(ClientConnectionRepository))
+    ]
 ) -> None:
     body = json.loads(crypto_utils.decrypt(encrypted_body))
     client_connection_id = body['client_connection_id']

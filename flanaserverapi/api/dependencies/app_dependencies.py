@@ -6,6 +6,7 @@ from fastapi import Body, Depends, HTTPException, status
 from starlette.requests import HTTPConnection
 
 from api.dependencies.http_dependencies import get_http_session, get_ip
+from api.dependencies.repository_dependencies import get_repository
 from api.schemas.app import App
 from api.schemas.client_context import ClientContext
 from config import config
@@ -16,7 +17,11 @@ from services import client_context_service
 from services.app_monitor import AppMonitor
 
 
-async def get_app(app_id: AppId, app_repository: Annotated[AppRepository, Depends(AppRepository)]) -> App:
+async def get_app(
+    app_id: AppId,
+    app_repository: Annotated[AppRepository,
+    Depends(get_repository(AppRepository))]
+) -> App:
     return await app_repository.get_by_id(app_id) or await app_repository.insert_one(App(_id=app_id))
 
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, s
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
 from api import responses
+from api.dependencies.repository_dependencies import get_repository
 from api.routers import uploads_router
 from api.schemas.virtual_files import VirtualFileResponse, VirtualFiles
 from config import config
@@ -20,7 +21,7 @@ router.include_router(uploads_router.router)
 
 @router.get('')
 async def get_files(
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1)] = config.files_default_limit
 ) -> VirtualFiles:
@@ -30,8 +31,8 @@ async def get_files(
 @router.get('/{file_id}')
 async def get_file(
     file_id: str,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> VirtualFileResponse:
     try:
         return await file_service.get_virtual_file_response(file_id, physical_file_repository, virtual_file_repository)
@@ -42,8 +43,8 @@ async def get_file(
 @router.get('/{file_id}/content', response_model=None, response_class=Response, responses=responses.bytes_responses)
 async def get_file_content(
     file_id: str,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> FileResponse | Response:
     try:
         physical_file, virtual_file = await file_service.get_file(
@@ -75,8 +76,8 @@ async def get_file_content(
 async def get_file_embed_page(
     file_id: str,
     user_agent: Annotated[str, Header()],
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)],
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     request: Request
 ) -> HTMLResponse | RedirectResponse:
     file_url = request.url_for('get_file_content', file_id=file_id)
@@ -105,8 +106,8 @@ async def get_file_embed_page(
 )
 async def get_file_thumbnail(
     file_id: str,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> FileResponse:
     try:
         return FileResponse(
@@ -120,8 +121,8 @@ async def get_file_thumbnail(
 @router.delete('/{file_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(
     file_id: str,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> None:
     try:
         await file_service.delete_file(file_id, physical_file_repository, virtual_file_repository)

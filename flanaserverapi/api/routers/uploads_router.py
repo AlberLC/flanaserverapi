@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
 
+from api.dependencies.repository_dependencies import get_repository
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
 from api.schemas.upload_state import UploadState
@@ -24,7 +25,7 @@ router = APIRouter(prefix='/uploads')
 @router.get('/{upload_id}')
 async def get_upload_state(
     upload_id: str,
-    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(TemporaryFileRepository)]
+    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))]
 ) -> UploadState:
     try:
         return await upload_service.get_upload_state(upload_id, temporary_file_repository)
@@ -35,9 +36,9 @@ async def get_upload_state(
 @router.post('', status_code=status.HTTP_201_CREATED)
 async def create_upload(
     create_upload_request: CreateUploadRequest,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(TemporaryFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> CreateUploadResponse:
     return await upload_service.create_upload(
         create_upload_request,
@@ -50,9 +51,9 @@ async def create_upload(
 @router.post('/{upload_id}/complete', status_code=status.HTTP_201_CREATED)
 async def complete_upload(
     upload_id: str,
-    physical_file_repository: Annotated[PhysicalFileRepository, Depends(PhysicalFileRepository)],
-    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(TemporaryFileRepository)],
-    virtual_file_repository: Annotated[VirtualFileRepository, Depends(VirtualFileRepository)]
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
+    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))],
+    virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> VirtualFileResponse:
     try:
         return await upload_service.complete_upload(
@@ -75,7 +76,7 @@ async def upload_chunk(
     chunk_index: Annotated[int, Header()],
     chunk_checksum: Annotated[str, Header()],
     chunk_bytes: Annotated[bytes, Body(media_type='application/octet-stream')],
-    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(TemporaryFileRepository)]
+    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))]
 ) -> None:
     try:
         await upload_service.process_chunk(
@@ -94,7 +95,7 @@ async def upload_chunk(
 @router.delete('/{upload_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_upload(
     upload_id: str,
-    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(TemporaryFileRepository)]
+    temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))]
 ) -> None:
     try:
         await upload_service.cancel_upload(upload_id, temporary_file_repository)
