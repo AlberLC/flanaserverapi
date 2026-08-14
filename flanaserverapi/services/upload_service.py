@@ -19,54 +19,14 @@ from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
+from database.transactions import mongo_transaction
 from exceptions import IncompleteUploadError, InvalidChunkError, UploadFinalizedError, UploadNotFoundError
 from services import file_service
 from utils import crypto_utils, file_utils
 
 
-async def _create_physical_file(
-    temporary_file: TemporaryFile,
-    virtual_file_id: str,
-    physical_file_repository: PhysicalFileRepository
-) -> PhysicalFile:
-    temporary_file_path = file_service.build_temporary_file_path(temporary_file.mongo_id)
-
-    try:
-        file_hash = await asyncio.to_thread(crypto_utils.hash_file, temporary_file_path)
-    except FileNotFoundError:
-        raise UploadNotFoundError
-
-    if (
-        (physical_file := await physical_file_repository.get_one({'hash': file_hash}))
-        and
-        await asyncio.to_thread(
-            filecmp.cmp,
-            temporary_file_path,
-            file_service.build_physical_file_path(physical_file.mongo_id),
-            shallow=False
-        )
-    ):
-        await physical_file_repository.partial_update_one(
-            {'_id': physical_file.mongo_id}, {'$addToSet': {'virtual_file_ids': virtual_file_id}}
-        )
-    else:
-        physical_file = await physical_file_repository.insert_one(
-            PhysicalFile(
-                hash=file_hash,
-                size=temporary_file.size,
-                mime_type=await asyncio.to_thread(file_utils.get_mime_type, temporary_file_path),
-                virtual_file_ids={virtual_file_id}
-            )
-        )
-
-    await asyncio.to_thread(temporary_file_path.move, file_service.build_physical_file_path(physical_file.mongo_id))
-
-    return physical_file
-
-
 async def _create_virtual_file(
     temporary_file: TemporaryFile,
-    physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> VirtualFile:
     while True:
@@ -78,11 +38,6 @@ async def _create_virtual_file(
             pass
         else:
             break
-
-    physical_file = await _create_physical_file(temporary_file, virtual_file.mongo_id, physical_file_repository)
-    _create_thumbnail(physical_file)
-    virtual_file.physical_file_id = physical_file.mongo_id
-    await virtual_file_repository.update_one_by_id(virtual_file)
 
     return virtual_file
 
@@ -110,6 +65,64 @@ def _create_thumbnail(physical_file: PhysicalFile) -> None:
         )
 
 
+@mongo_transaction
+async def _persist_completed_upload(
+    temporary_file: TemporaryFile,
+    physical_file: PhysicalFile,
+    is_physical_file_new: bool,
+    physical_file_repository: PhysicalFileRepository,
+    temporary_file_repository: TemporaryFileRepository,
+    virtual_file_repository: VirtualFileRepository
+) -> VirtualFile:
+    virtual_file = await _create_virtual_file(temporary_file, virtual_file_repository)
+    physical_file = await _upsert_physical_file(
+        physical_file,
+        is_physical_file_new,
+        virtual_file.mongo_id,
+        physical_file_repository
+    )
+
+    virtual_file.physical_file_id = physical_file.mongo_id
+    await virtual_file_repository.update_one_by_id(virtual_file)
+
+    temporary_file.virtual_file_id = virtual_file.mongo_id
+    await temporary_file_repository.update_one_by_id(temporary_file)
+
+    return virtual_file
+
+
+async def _prepare_physical_file(
+    temporary_file_size: int,
+    temporary_file_path: Path,
+    physical_file_repository: PhysicalFileRepository
+) -> tuple[PhysicalFile, bool]:
+    try:
+        file_hash = await asyncio.to_thread(crypto_utils.hash_file, temporary_file_path)
+    except FileNotFoundError:
+        raise UploadNotFoundError
+
+    if (
+        (physical_file := await physical_file_repository.get_one({'hash': file_hash}))
+        and
+        await asyncio.to_thread(
+            filecmp.cmp,
+            temporary_file_path,
+            file_service.build_physical_file_path(physical_file.mongo_id),
+            shallow=False
+        )
+    ):
+        return physical_file, False
+
+    return (
+        PhysicalFile(
+            hash=file_hash,
+            size=temporary_file_size,
+            mime_type=await asyncio.to_thread(file_utils.get_mime_type, temporary_file_path)
+        ),
+        True
+    )
+
+
 async def _store_chunk(
     upload_id: str,
     chunk_index: int,
@@ -120,6 +133,23 @@ async def _store_chunk(
     await temporary_file_repository.partial_update_one(
         {'_id': upload_id}, {'$addToSet': {'received_chunks': chunk_index}}
     )
+
+
+async def _upsert_physical_file(
+    physical_file: PhysicalFile,
+    is_physical_file_new: bool,
+    virtual_file_id: str,
+    physical_file_repository: PhysicalFileRepository
+) -> PhysicalFile:
+    if is_physical_file_new:
+        physical_file.virtual_file_ids.add(virtual_file_id)
+        await physical_file_repository.insert_one(physical_file)
+    else:
+        await physical_file_repository.partial_update_one(
+            {'_id': physical_file.mongo_id}, {'$addToSet': {'virtual_file_ids': virtual_file_id}}
+        )
+
+    return physical_file
 
 
 def _validate_chunk(chunk_index: int, chunk_checksum: str, chunk_bytes: bytes, temporary_file: TemporaryFile) -> None:
@@ -187,13 +217,34 @@ async def complete_upload(
         raise UploadFinalizedError
 
     try:
-        virtual_file = await _create_virtual_file(temporary_file, physical_file_repository, virtual_file_repository)
-        temporary_file.virtual_file_id = virtual_file.mongo_id
-    finally:
-        temporary_file.is_finalizing = False
-        await temporary_file_repository.update_one_by_id(temporary_file)
+        temporary_file_path = file_service.build_temporary_file_path(temporary_file.mongo_id)
 
-    return file_service.create_virtual_file_response(virtual_file)
+        physical_file, is_physical_file_new = await _prepare_physical_file(
+            temporary_file.size,
+            temporary_file_path,
+            physical_file_repository
+        )
+
+        if is_physical_file_new:
+            # noinspection bad-argument-type
+            await asyncio.to_thread(
+                temporary_file_path.move,
+                file_service.build_physical_file_path(physical_file.mongo_id)
+            )
+            _create_thumbnail(physical_file)
+
+        return file_service.create_virtual_file_response(
+            await _persist_completed_upload(
+                temporary_file,
+                physical_file,
+                is_physical_file_new,
+                physical_file_repository,
+                temporary_file_repository,
+                virtual_file_repository
+            )
+        )
+    finally:
+        await temporary_file_repository.partial_update_one({'_id': upload_id}, {'$set': {'is_finalizing': False}})
 
 
 async def create_upload(
