@@ -128,7 +128,7 @@ async def _store_chunk(
     chunk_index: int,
     chunk_bytes: bytes,
     temporary_file_repository: TemporaryFileRepository
-) -> TemporaryFile | None:
+) -> None:
     await asyncio.to_thread(_write_chunk, chunk_index, chunk_bytes, file_service.build_temporary_file_path(upload_id))
     await temporary_file_repository.partial_update_one(
         {'_id': upload_id}, {'$addToSet': {'received_chunks': chunk_index}}
