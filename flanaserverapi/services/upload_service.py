@@ -70,16 +70,10 @@ async def _create_virtual_file(
     virtual_file_repository: VirtualFileRepository
 ) -> VirtualFile:
     while True:
-        mongo_id = crypto_utils.create_id()
+        virtual_file = VirtualFile(name=temporary_file.name, expires_at=temporary_file.expires_at)
 
         try:
-            virtual_file = await virtual_file_repository.insert_one(
-                VirtualFile(
-                    _id=mongo_id,
-                    name=temporary_file.name,
-                    expires_at=temporary_file.expires_at
-                )
-            )
+            await virtual_file_repository.insert_one(virtual_file)
         except pymongo.errors.DuplicateKeyError:
             pass
         else:
@@ -216,15 +210,15 @@ async def create_upload(
         expires_at = now + datetime.timedelta(seconds=create_upload_request.file_expires_in)
 
     while True:
+        temporary_file = TemporaryFile(
+            name=create_upload_request.file_name,
+            size=create_upload_request.file_size,
+            total_chunks=math.ceil(create_upload_request.file_size / config.upload_chunk_size),
+            expires_at=expires_at
+        )
+
         try:
-            temporary_file = await temporary_file_repository.insert_one(
-                TemporaryFile(
-                    name=create_upload_request.file_name,
-                    size=create_upload_request.file_size,
-                    total_chunks=math.ceil(create_upload_request.file_size / config.upload_chunk_size),
-                    expires_at=expires_at
-                )
-            )
+            await temporary_file_repository.insert_one(temporary_file)
         except pymongo.errors.DuplicateKeyError:
             pass
         else:

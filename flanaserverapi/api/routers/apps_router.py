@@ -89,8 +89,10 @@ async def get_license(
         Depends(get_repository(ClientConnectionRepository))
     ]
 ) -> dict[str, str]:
-    client_connection = await client_connection_repository.insert_one(
-        ClientConnection(app_id=app_id, system_info=client_context.system_info),
+    client_connection = ClientConnection(app_id=app_id, system_info=client_context.system_info)
+
+    await client_connection_repository.insert_one(
+        client_connection,
         max_documents=config.max_client_connections,
         max_documents_sort_keys=('date',)
     )

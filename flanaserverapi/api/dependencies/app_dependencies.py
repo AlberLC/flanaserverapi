@@ -22,7 +22,14 @@ async def get_app(
     app_repository: Annotated[AppRepository,
     Depends(get_repository(AppRepository))]
 ) -> App:
-    return await app_repository.get_by_id(app_id) or await app_repository.insert_one(App(_id=app_id))
+    if app := await app_repository.get_by_id(app_id):
+        return app
+
+    app = App(_id=app_id)
+
+    await app_repository.insert_one(app)
+
+    return app
 
 
 async def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: Annotated[str, Depends(get_ip)]) -> None:
