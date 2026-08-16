@@ -83,10 +83,10 @@ async def _persist_completed_upload(
     )
 
     virtual_file.physical_file_id = physical_file.mongo_id
-    await virtual_file_repository.update_one_by_id(virtual_file)
+    await virtual_file_repository.update_by_id(virtual_file)
 
     temporary_file.virtual_file_id = virtual_file.mongo_id
-    await temporary_file_repository.update_one_by_id(temporary_file)
+    await temporary_file_repository.update_by_id(temporary_file)
 
     return virtual_file
 

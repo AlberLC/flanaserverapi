@@ -133,4 +133,4 @@ async def register_installation_paths(
     client_connection.app_installation_paths.compressed_paths.extend(
         Path(raw_path) for raw_path in body['compressed_paths']
     )
-    await client_connection_repository.update_one_by_id(client_connection)
+    await client_connection_repository.update_by_id(client_connection)
