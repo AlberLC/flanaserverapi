@@ -16,4 +16,4 @@ class TemporaryFile(SecretIdModel):
     is_finalizing: bool = False
     virtual_file_id: str | None = None
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
-    expires_at: datetime.datetime | None
+    expires_in: int | None

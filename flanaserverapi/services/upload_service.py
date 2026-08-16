@@ -29,11 +29,16 @@ async def _create_virtual_file(
     temporary_file: TemporaryFile,
     virtual_file_repository: VirtualFileRepository
 ) -> VirtualFile:
+    if temporary_file.expires_in is None:
+        expires_at = None
+    else:
+        expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=temporary_file.expires_in)
+
     while True:
         virtual_file = VirtualFile(
             access_token_hash=temporary_file.access_token_hash,
             name=temporary_file.name,
-            expires_at=temporary_file.expires_at
+            expires_at=expires_at
         )
 
         try:
@@ -270,20 +275,13 @@ async def create_upload(
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> CreateUploadResponse:
-    now = datetime.datetime.now(datetime.UTC)
-
-    if create_upload_request.file_expires_in is None:
-        expires_at = None
-    else:
-        expires_at = now + datetime.timedelta(seconds=create_upload_request.file_expires_in)
-
     while True:
         temporary_file = TemporaryFile(
             access_token_hash=access_token_hash,
             name=create_upload_request.file_name,
             size=create_upload_request.file_size,
             total_chunks=math.ceil(create_upload_request.file_size / config.upload_chunk_size),
-            expires_at=expires_at
+            expires_in=create_upload_request.file_expires_in
         )
 
         try:
