@@ -32,7 +32,7 @@ async def get_app(
     return app
 
 
-async def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: Annotated[str, Depends(get_ip)]) -> None:
+def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: Annotated[str, Depends(get_ip)]) -> None:
     for system_info in app.blacklisted_system_infos:
         if system_info.ip_geolocation is None:
             continue
@@ -55,7 +55,7 @@ def get_app_compressed_path(app_id: AppId, release_type: ReleaseType | None = Re
     return compressed_path
 
 
-async def get_app_monitor(app_id: AppId, http_connection: HTTPConnection) -> AppMonitor:
+def get_app_monitor(app_id: AppId, http_connection: HTTPConnection) -> AppMonitor:
     if not app_id in http_connection.state.app_monitors:
         http_connection.state.app_monitors[app_id] = AppMonitor(app_id)
 

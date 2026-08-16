@@ -8,7 +8,6 @@ from starlette.requests import HTTPConnection
 
 from config import config
 
-get_credentials = HTTPBearer()
 
 
 async def check_bearer_token(credentials: Annotated[HTTPAuthorizationCredentials, Depends(get_credentials)]) -> None:
@@ -22,3 +21,6 @@ async def get_http_session(http_connection: HTTPConnection) -> aiohttp.ClientSes
 
 async def get_ip(http_connection: HTTPConnection) -> str:
     return http_connection.client.host
+
+
+get_credentials = HTTPBearer()

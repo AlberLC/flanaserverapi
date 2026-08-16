@@ -15,7 +15,7 @@ class AppSettings(BaseSettings):
     api_root: str = '/api'
     api_token: str | None = None
     environment: Environment
-    subdomain: str | None = None
+    subdomain: str
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / '.env')
 
@@ -24,13 +24,13 @@ class DuckDNSSettings(AppSettings):
     duckdns_ip_updater_endpoint: str = 'https://www.duckdns.org/update'
     duckdns_ip_updater_error_message: str = 'Error updating IP'
     duckdns_ip_updater_sleep: float = datetime.timedelta(minutes=5).total_seconds()
-    duckdns_key: str | None = None
+    duckdns_key: str
 
 
 class IpGeolocationSettings(AppSettings):
     geojs_endpoint: str = 'https://get.geojs.io/v1/ip/geo.json'
     ip_geolocation_endpoint: str = 'https://api.ipgeolocation.io/v2/ipgeo'
-    ip_geolocation_key: str | None = None
+    ip_geolocation_key: str
 
 
 class MongoSettings(AppSettings):
@@ -69,10 +69,8 @@ class MongoSettings(AppSettings):
         ],
         'temporary_file': [
             {
-                'name': 'created_at_null_virtual_file_id',
-                'keys': [
-                    ('created_at', 1),
-                ],
+                'name': 'created_at_1_null_virtual_file_id',
+                'keys': 'created_at',
                 'partialFilterExpression': {
                     'virtual_file_id': None
                 }
@@ -124,9 +122,9 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     max_client_connections: int = 1000
     mime_types: dict[str, str] = {'bytes': 'application/octet-stream', 'zip': 'application/zip'}
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
-    private_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
+    private_key: Annotated[bytes, BeforeValidator(base64.b64decode)]
     shutdown_ws_message: str = 'shutdown'
-    symmetric_key: Annotated[bytes, BeforeValidator(base64.b64decode)] | None = None
+    symmetric_key: Annotated[bytes, BeforeValidator(base64.b64decode)]
     system_info_identifying_attributes: tuple[str, ...] = ('username', 'hostname', 'mac_address', 'ip_geolocation')
     temporary_files_cleanup_protection_period: datetime.timedelta = datetime.timedelta(minutes=5)
     temporary_files_ttl: datetime.timedelta = datetime.timedelta(hours=2)
