@@ -187,8 +187,7 @@ async def cancel_upload(upload_id: str, temporary_file_repository: TemporaryFile
 
         raise UploadNotFoundError
 
-    await temporary_file_repository.delete_by_id(upload_id)
-    await asyncio.to_thread(file_service.build_temporary_file_path(upload_id).unlink)
+    await file_service.delete_temporary_files((upload_id,), temporary_file_repository)
 
 
 async def complete_upload(

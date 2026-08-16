@@ -76,13 +76,6 @@ async def _delete_physical_files(ids: Sequence[ObjectId], physical_file_reposito
     await physical_file_repository.delete({'_id': {'$in': ids}})
 
 
-async def _delete_temporary_files(ids: Sequence[str], temporary_file_repository: TemporaryFileRepository) -> None:
-    for id in ids:
-        await _delete_file(build_temporary_file_path(id))
-
-    await temporary_file_repository.delete({'_id': {'$in': ids}})
-
-
 async def _delete_virtual_files(
     virtual_files: Sequence[VirtualFile],
     physical_file_repository: PhysicalFileRepository,
@@ -204,7 +197,7 @@ async def _iter_valid_temporary_files(
         else:
             temporary_file_ids_to_delete.append(temporary_file.mongo_id)
 
-    await _delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
+    await delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
 
 
 def build_physical_file_path(id: ObjectId) -> Path:
@@ -249,6 +242,13 @@ async def delete_file(
     await _delete_virtual_files((virtual_file,), physical_file_repository, virtual_file_repository)
 
 
+async def delete_temporary_files(ids: Sequence[str], temporary_file_repository: TemporaryFileRepository) -> None:
+    for id in ids:
+        await _delete_file(build_temporary_file_path(id))
+
+    await temporary_file_repository.delete({'_id': {'$in': ids}})
+
+
 @mongo_transaction
 async def enforce_storage_limit(
     physical_file_repository: PhysicalFileRepository,
@@ -290,7 +290,7 @@ async def enforce_storage_limit(
         if used_storage <= config.files_max_storage_size:
             break
 
-    await _delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
+    await delete_temporary_files(temporary_file_ids_to_delete, temporary_file_repository)
 
 
 async def generate_embed_page(
