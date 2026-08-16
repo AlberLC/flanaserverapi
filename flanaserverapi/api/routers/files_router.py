@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, s
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
 from api import responses
+from api.dependencies.http_dependencies import get_access_token_hash
 from api.dependencies.repository_dependencies import get_repository
 from api.routers import uploads_router
 from api.schemas.virtual_files import VirtualFileResponse, VirtualFiles
@@ -21,21 +22,28 @@ router.include_router(uploads_router.router)
 
 @router.get('')
 async def get_files(
+    access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1)] = config.files_default_limit
 ) -> VirtualFiles:
-    return await file_service.get_files(virtual_file_repository, skip, limit)
+    return await file_service.get_files(access_token_hash, virtual_file_repository, skip, limit)
 
 
 @router.get('/{file_id}')
 async def get_file(
     file_id: str,
+    access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> VirtualFileResponse:
     try:
-        return await file_service.get_virtual_file_response(file_id, physical_file_repository, virtual_file_repository)
+        return await file_service.get_virtual_file_response(
+            file_id,
+            access_token_hash,
+            physical_file_repository,
+            virtual_file_repository
+        )
     except FileNotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
@@ -121,10 +129,11 @@ async def get_file_thumbnail(
 @router.delete('/{file_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(
     file_id: str,
+    access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> None:
     try:
-        await file_service.delete_file(file_id, physical_file_repository, virtual_file_repository)
+        await file_service.delete_file(file_id, access_token_hash, physical_file_repository, virtual_file_repository)
     except FileNotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))

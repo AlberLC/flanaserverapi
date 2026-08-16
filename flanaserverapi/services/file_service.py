@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import AsyncGenerator, Sequence
 from pathlib import Path
 
+import pymongo
 from bson import ObjectId
 from fastapi import Request
 from fastapi.datastructures import URL
@@ -233,10 +234,13 @@ def create_virtual_file_response(virtual_file: VirtualFile) -> VirtualFileRespon
 
 async def delete_file(
     file_id: str,
+    access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> None:
-    if not (virtual_file := await virtual_file_repository.get_by_id(file_id)):
+    if not (
+        virtual_file := await virtual_file_repository.get_one({'_id': file_id, 'access_token_hash': access_token_hash})
+    ):
         raise FileNotFoundError(config.file_not_found_error_message)
 
     await _delete_virtual_files((virtual_file,), physical_file_repository, virtual_file_repository)
@@ -371,10 +375,16 @@ async def generate_embed_page(
 async def get_file(
     file_id: str,
     physical_file_repository: PhysicalFileRepository,
-    virtual_file_repository: VirtualFileRepository
+    virtual_file_repository: VirtualFileRepository,
+    access_token_hash: str | None = None
 ) -> tuple[PhysicalFile, VirtualFile]:
+    filter = {'_id': file_id}
+
+    if access_token_hash:
+        filter = {'access_token_hash': access_token_hash}
+
     if (
-        not (virtual_file := await virtual_file_repository.get_by_id(file_id))
+        not (virtual_file := await virtual_file_repository.get_one(filter))
         or
         not virtual_file.physical_file_id
         or
@@ -414,6 +424,7 @@ async def get_file_thumbnail_path(
 
 
 async def get_files(
+    access_token_hash: str,
     virtual_file_repository: VirtualFileRepository,
     skip: int = 0,
     limit: int | None = None
@@ -421,15 +432,23 @@ async def get_files(
     return VirtualFiles(
         files=[
             create_virtual_file_response(virtual_file)
-            async for virtual_file in virtual_file_repository.iter(skip=skip, limit=limit)
+            async for virtual_file in virtual_file_repository.iter(
+                {'access_token_hash': access_token_hash},
+                sort_keys=(('created_at', pymongo.DESCENDING),),
+                skip=skip,
+                limit=limit
+            )
         ],
-        total=await virtual_file_repository.count()
+        total=await virtual_file_repository.count({'access_token_hash': access_token_hash})
     )
 
 
 async def get_virtual_file_response(
     file_id: str,
+    access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository,
 ) -> VirtualFileResponse:
-    return create_virtual_file_response((await get_file(file_id, physical_file_repository, virtual_file_repository))[1])
+    return create_virtual_file_response(
+        (await get_file(file_id, physical_file_repository, virtual_file_repository, access_token_hash))[1]
+    )

@@ -1,8 +1,10 @@
 import base64
 import datetime
+import hashlib
 from pathlib import Path
 from typing import Annotated
 
+import pymongo
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,7 +15,6 @@ class AppSettings(BaseSettings):
     api_host: str | None = None
     api_port: int | None = None
     api_root: str = '/api'
-    api_token: str | None = None
     environment: Environment
     subdomain: str
 
@@ -75,6 +76,15 @@ class MongoSettings(AppSettings):
                     'virtual_file_id': None
                 }
             }
+        ],
+        'virtual_file': [
+            {
+                'name': 'access_token_hash_1_created_at_-1',
+                'keys': [
+                    'access_token_hash',
+                    ('created_at', pymongo.DESCENDING)
+                ]
+            }
         ]
     }
     mongo_password: str | None = None
@@ -113,11 +123,13 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     }
     default_resolution: tuple[int, int] = (1280, 720)
     document_not_found_error_message: str = 'Document not found'
+    dummy_access_token_hash: str = hashlib.sha256().hexdigest()
     file_name_min_length: int = 10
     file_not_found_error_message: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
     files_default_limit: int = 20
     files_max_storage_size: int = 20_000_000_000
+    flanabot_access_token_hash: str
     id_length: int = 6
     max_client_connections: int = 1000
     mime_types: dict[str, str] = {'bytes': 'application/octet-stream', 'zip': 'application/zip'}
@@ -134,6 +146,10 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     thumbnails_quality: int = 85
     upload_chunk_size: int = 5_242_880
     upload_max_size: int = 3_000_000_000
+
+    @property
+    def access_token_hashes(self) -> dict[str, str]:
+        return {'flanabot': self.flanabot_access_token_hash}
 
 
 # noinspection PyArgumentList

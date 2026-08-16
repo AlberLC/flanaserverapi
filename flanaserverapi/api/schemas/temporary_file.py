@@ -7,6 +7,7 @@ from api.schemas.bases import SecretIdModel
 
 
 class TemporaryFile(SecretIdModel):
+    access_token_hash: str
     name: str
     size: int
     total_chunks: int

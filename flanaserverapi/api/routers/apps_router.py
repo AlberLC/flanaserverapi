@@ -14,7 +14,7 @@ from api.dependencies.app_dependencies import (
     get_app_compressed_path,
     get_http_client_context
 )
-from api.dependencies.http_dependencies import check_bearer_token
+from api.dependencies.http_dependencies import check_access_token
 from api.dependencies.repository_dependencies import get_repository
 from api.schemas.app import App
 from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
@@ -28,7 +28,11 @@ from utils import crypto_utils, encoding_utils
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
 
-@router.get('/client-connections/latest', dependencies=[Depends(check_bearer_token)], include_in_schema=False)
+@router.get(
+    '/client-connections/latest',
+    dependencies=[Depends(check_access_token('flanabot'))],
+    include_in_schema=False
+)
 async def get_last_client_connections(
     client_connection_repository: Annotated[
         ClientConnectionRepository,

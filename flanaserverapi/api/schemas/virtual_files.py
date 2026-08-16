@@ -14,6 +14,7 @@ class VirtualFileBase(SecretIdModel):
 
 
 class VirtualFile(VirtualFileBase):
+    access_token_hash: str
     physical_file_id: Annotated[ObjectId, PlainSerializer(str, when_used='json')] | None = None
 
 

@@ -30,7 +30,11 @@ async def _create_virtual_file(
     virtual_file_repository: VirtualFileRepository
 ) -> VirtualFile:
     while True:
-        virtual_file = VirtualFile(name=temporary_file.name, expires_at=temporary_file.expires_at)
+        virtual_file = VirtualFile(
+            access_token_hash=temporary_file.access_token_hash,
+            name=temporary_file.name,
+            expires_at=temporary_file.expires_at
+        )
 
         try:
             await virtual_file_repository.insert_one(virtual_file)
@@ -178,11 +182,16 @@ def _write_chunk(chunk_index: int, chunk_bytes: bytes, temporary_file_path: Path
         temporary_file_stream.write(chunk_bytes)
 
 
-async def cancel_upload(upload_id: str, temporary_file_repository: TemporaryFileRepository) -> None:
+async def cancel_upload(
+    upload_id: str,
+    access_token_hash: str,
+    temporary_file_repository: TemporaryFileRepository
+) -> None:
     if not await temporary_file_repository.partial_update_one(
-        {'_id': upload_id, 'is_finalizing': False, 'virtual_file_id': None}, {'$set': {'is_finalizing': True}}
+        {'_id': upload_id, 'access_token_hash': access_token_hash, 'is_finalizing': False, 'virtual_file_id': None},
+        {'$set': {'is_finalizing': True}}
     ):
-        if await temporary_file_repository.get_by_id(upload_id):
+        if await temporary_file_repository.get_one({'_id': upload_id, 'access_token_hash': access_token_hash}):
             raise UploadFinalizedError
 
         raise UploadNotFoundError
@@ -192,11 +201,16 @@ async def cancel_upload(upload_id: str, temporary_file_repository: TemporaryFile
 
 async def complete_upload(
     upload_id: str,
+    access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
-) -> VirtualFileResponse:
-    if not (temporary_file := await temporary_file_repository.get_by_id(upload_id)):
+) -> tuple[VirtualFileResponse, bool]:
+    if not (
+        temporary_file := await temporary_file_repository.get_one(
+            {'_id': upload_id, 'access_token_hash': access_token_hash}
+        )
+    ):
         raise UploadNotFoundError
 
     if temporary_file.virtual_file_id:
@@ -250,6 +264,7 @@ async def complete_upload(
 
 
 async def create_upload(
+    access_token_hash: str,
     create_upload_request: CreateUploadRequest,
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
@@ -264,6 +279,7 @@ async def create_upload(
 
     while True:
         temporary_file = TemporaryFile(
+            access_token_hash=access_token_hash,
             name=create_upload_request.file_name,
             size=create_upload_request.file_size,
             total_chunks=math.ceil(create_upload_request.file_size / config.upload_chunk_size),
@@ -286,8 +302,16 @@ async def create_upload(
     return CreateUploadResponse(id=temporary_file.mongo_id, chunk_size=config.upload_chunk_size)
 
 
-async def get_upload_state(upload_id: str, temporary_file_repository: TemporaryFileRepository) -> UploadState:
-    if not (temporary_file := await temporary_file_repository.get_by_id(upload_id)):
+async def get_upload_state(
+    upload_id: str,
+    access_token_hash: str,
+    temporary_file_repository: TemporaryFileRepository
+) -> UploadState:
+    if not (
+        temporary_file := await temporary_file_repository.get_one(
+            {'_id': upload_id, 'access_token_hash': access_token_hash}
+        )
+    ):
         raise UploadNotFoundError
 
     return UploadState(chunk_size=config.upload_chunk_size, uploaded_chunks=sorted(temporary_file.received_chunks))
@@ -295,12 +319,17 @@ async def get_upload_state(upload_id: str, temporary_file_repository: TemporaryF
 
 async def process_chunk(
     upload_id: str,
+    access_token_hash: str,
     chunk_index: int,
     chunk_checksum: str,
     chunk_bytes: bytes,
     temporary_file_repository: TemporaryFileRepository
 ) -> None:
-    if not (temporary_file := await temporary_file_repository.get_by_id(upload_id)):
+    if not (
+        temporary_file := await temporary_file_repository.get_one(
+            {'_id': upload_id, 'access_token_hash': access_token_hash}
+        )
+    ):
         raise UploadNotFoundError
 
     _validate_chunk(chunk_index, chunk_checksum, chunk_bytes, temporary_file)
