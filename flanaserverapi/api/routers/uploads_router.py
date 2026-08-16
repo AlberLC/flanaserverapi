@@ -1,12 +1,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
+from fastapi.responses import JSONResponse
 
 from api.dependencies.repository_dependencies import get_repository
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
 from api.schemas.upload_state import UploadState
-from api.schemas.virtual_files import VirtualFileResponse
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
@@ -54,9 +54,9 @@ async def complete_upload(
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> VirtualFileResponse:
+) -> JSONResponse:
     try:
-        return await upload_service.complete_upload(
+        virtual_file_response, was_created = await upload_service.complete_upload(
             upload_id,
             physical_file_repository,
             temporary_file_repository,
@@ -68,6 +68,11 @@ async def complete_upload(
         raise HTTPException(status.HTTP_409_CONFLICT, str(e))
     except ThumbnailError as e:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+
+    return JSONResponse(
+        virtual_file_response.model_dump(mode='json'),
+        status.HTTP_201_CREATED if was_created else status.HTTP_200_OK
+    )
 
 
 @router.patch('/{upload_id}/chunks', status_code=status.HTTP_204_NO_CONTENT)

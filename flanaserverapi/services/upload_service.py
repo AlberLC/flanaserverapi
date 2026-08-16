@@ -202,7 +202,7 @@ async def complete_upload(
 
     if temporary_file.virtual_file_id:
         if virtual_file := await virtual_file_repository.get_by_id(temporary_file.virtual_file_id):
-            return file_service.create_virtual_file_response(virtual_file)
+            return file_service.create_virtual_file_response(virtual_file), False
         else:
             raise UploadNotFoundError
 
@@ -233,15 +233,18 @@ async def complete_upload(
             )
             _create_thumbnail(physical_file)
 
-        return file_service.create_virtual_file_response(
-            await _persist_completed_upload(
-                temporary_file,
-                physical_file,
-                is_physical_file_new,
-                physical_file_repository,
-                temporary_file_repository,
-                virtual_file_repository
-            )
+        return (
+            file_service.create_virtual_file_response(
+                await _persist_completed_upload(
+                    temporary_file,
+                    physical_file,
+                    is_physical_file_new,
+                    physical_file_repository,
+                    temporary_file_repository,
+                    virtual_file_repository
+                )
+            ),
+            True
         )
     finally:
         await temporary_file_repository.partial_update_one({'_id': upload_id}, {'$set': {'is_finalizing': False}})
