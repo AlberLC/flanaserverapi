@@ -1,3 +1,4 @@
+import json
 import subprocess
 import urllib.parse
 import uuid
@@ -41,17 +42,15 @@ def get_video_resolution(file_path: str | Path) -> tuple[int, int]:
         '-v', 'error',
         '-select_streams', 'v:0',
         '-show_entries', 'stream=width,height',
-        '-of', 'csv=p=0:s=x',
+        '-of', 'json',
         str(file_path)
     ]
 
     try:
-        output = subprocess.check_output(cmd, text=True).strip()
-        width, height = (int(size) for size in output.split('x'))
-    except ValueError, subprocess.CalledProcessError:
+        stream_data = json.loads(subprocess.check_output(cmd, text=True).strip())['streams'][0]
+        return stream_data['width'], stream_data['height']
+    except KeyError, subprocess.CalledProcessError:
         return config.default_resolution
-    else:
-        return width, height
 
 
 def replace_non_alpha_with_underscore(text: str) -> str:
