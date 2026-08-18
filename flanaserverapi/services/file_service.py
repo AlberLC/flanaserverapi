@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from collections import defaultdict
-from collections.abc import AsyncGenerator, Sequence
+from collections.abc import AsyncGenerator, Iterable, Sequence
 from pathlib import Path
 
 import pymongo
@@ -82,13 +82,7 @@ async def _delete_virtual_files(
     physical_files_by_id: dict[ObjectId, PhysicalFile] | None = None
 ) -> None:
     if physical_files_by_id is None:
-        physical_file_ids = tuple(
-            virtual_file.physical_file_id for virtual_file in virtual_files if virtual_file.physical_file_id
-        )
-        physical_files_by_id = {
-            physical_file.mongo_id: physical_file
-            async for physical_file in physical_file_repository.iter({'_id': {'$in': physical_file_ids}})
-        }
+        physical_files_by_id = await _get_physical_files_by_id(virtual_files, physical_file_repository)
 
     physical_file_ids_to_delete = []
     virtual_file_ids_to_delete = []
@@ -112,6 +106,23 @@ async def _delete_virtual_files(
 
     await virtual_file_repository.delete({'_id': {'$in': virtual_file_ids_to_delete}})
     await _delete_physical_files(physical_file_ids_to_delete, physical_file_repository)
+
+
+async def _get_physical_files_by_id(
+    virtual_files: Iterable[VirtualFile],
+    physical_file_repository: PhysicalFileRepository
+) -> dict[ObjectId, PhysicalFile]:
+    physical_file_ids = tuple(
+        virtual_file.physical_file_id for virtual_file in virtual_files if virtual_file.physical_file_id
+    )
+
+    if not physical_file_ids:
+        return {}
+
+    return {
+        physical_file.mongo_id: physical_file
+        async for physical_file in physical_file_repository.iter({'_id': {'$in': physical_file_ids}})
+    }
 
 
 async def _get_used_storage(
@@ -228,6 +239,8 @@ def create_file(physical_file: PhysicalFile, virtual_file: VirtualFile) -> File:
         url=f'/files/{virtual_file.mongo_id}/content',
         embed_url=f'/files/{virtual_file.mongo_id}/embed',
         thumbnail_url=f'/files/{virtual_file.mongo_id}/thumbnail',
+        width=physical_file.width,
+        height=physical_file.height,
         created_at=virtual_file.created_at,
         expires_at=virtual_file.expires_at
     )
@@ -325,14 +338,22 @@ async def generate_embed_page(
         f'<meta property="og:image" content="{request.url_for('get_file_thumbnail', file_id=file_id)}" />'
     ]
 
-    if main_type == 'video':
-        width, height = file_utils.get_video_resolution(build_physical_file_path(physical_file.mongo_id))
+    if main_type == 'image':
+        # noinspection string-conversion-without-dunder-method
+        meta_tags_parts.extend(
+            (
+                f'<meta property="og:image:width" content="{physical_file.width}" />',
+                f'<meta property="og:image:height" content="{physical_file.height}" />'
+            )
+        )
+    elif main_type == 'video':
+        # noinspection string-conversion-without-dunder-method
         meta_tags_parts.extend(
             (
                 f'<meta property="og:video" content="{file_url}" />',
                 f'<meta property="og:video:type" content="{physical_file.mime_type}" />',
-                f'<meta property="og:video:width" content="{width}" />',
-                f'<meta property="og:video:height" content="{height}" />'
+                f'<meta property="og:video:width" content="{physical_file.width}" />',
+                f'<meta property="og:video:height" content="{physical_file.height}" />'
             )
         )
     elif main_type == 'audio':
@@ -355,7 +376,7 @@ async def generate_embed_page(
         case 'audio':
             body_parts.append(f'<audio controls><source src="{file_url}" type="{physical_file.mime_type}"></audio>')
         case 'image':
-            body_parts.append(f'<img src="{file_url}" alt="{virtual_file.name}" style="max-width:100%; height:auto;">')
+            body_parts.append(f'<img src="{file_url}" alt="{virtual_file.name}">')
 
     meta_tags_content = '\n'.join(meta_tags_parts)
     body_content = '\n'.join(body_parts)
@@ -426,19 +447,28 @@ async def get_file_thumbnail_path(
 
 async def get_files(
     access_token_hash: str,
+    physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository,
     skip: int = 0,
     limit: int | None = None
-    return VirtualFiles(
-        files=[
-            create_virtual_file_response(virtual_file)
-            async for virtual_file in virtual_file_repository.iter(
-                {'access_token_hash': access_token_hash},
-                sort_keys=(('created_at', pymongo.DESCENDING),),
-                skip=skip,
-                limit=limit
-            )
 ) -> Files:
+    virtual_files = [
+        virtual_file
+        async for virtual_file in virtual_file_repository.iter(
+            {'access_token_hash': access_token_hash},
+            sort_keys=(('created_at', pymongo.DESCENDING),),
+            skip=skip,
+            limit=limit
+        )
+    ]
+    physical_files_by_id = await _get_physical_files_by_id(virtual_files, physical_file_repository)
+
+    # noinspection bad-index
+    return Files(
+        files=[
+            create_file(physical_files_by_id[virtual_file.physical_file_id], virtual_file)
+            for virtual_file in virtual_files
+            if virtual_file.physical_file_id
         ],
         total=await virtual_file_repository.count({'access_token_hash': access_token_hash})
     )
@@ -448,8 +478,6 @@ async def get_file(
     file_id: str,
     access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
-    return create_virtual_file_response(
-        (await get_file(file_id, physical_file_repository, virtual_file_repository, access_token_hash))[1]
-    )
     virtual_file_repository: VirtualFileRepository
 ) -> File:
+    return create_file(*await get_file_models(file_id, physical_file_repository, virtual_file_repository, access_token_hash))

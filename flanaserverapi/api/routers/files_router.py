@@ -23,11 +23,18 @@ router.include_router(uploads_router.router)
 @router.get('')
 async def get_files(
     access_token_hash: Annotated[str, Depends(get_access_token_hash)],
+    physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1)] = config.files_default_limit
-    return await file_service.get_files(access_token_hash, virtual_file_repository, skip, limit)
 ) -> Files:
+    return await file_service.get_files(
+        access_token_hash,
+        physical_file_repository,
+        virtual_file_repository,
+        skip,
+        limit
+    )
 
 
 @router.get('/{file_id}')

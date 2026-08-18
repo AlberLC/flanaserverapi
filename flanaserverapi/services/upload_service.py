@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pymongo.errors
 from PIL import Image, ImageOps
+from bson import ObjectId
 
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
@@ -49,7 +50,17 @@ async def _create_virtual_file(
     return virtual_file
 
 
-def _create_thumbnail(physical_file: PhysicalFile) -> None:
+def _create_thumbnail(physical_file_id: ObjectId, image: Image.Image) -> None:
+    ImageOps.exif_transpose(image, in_place=True)
+    image.thumbnail((config.thumbnails_max_size, config.thumbnails_max_size), Image.Resampling.LANCZOS)
+    image.save(
+        file_service.build_thumbnail_path(physical_file_id),
+        quality=config.thumbnails_quality,
+        method=config.thumbnails_method
+    )
+
+
+def _open_file_image(physical_file: PhysicalFile) -> Image.Image | None:
     main_type = physical_file.mime_type.split('/')[0]
 
     if main_type not in {'image', 'video'}:
@@ -62,14 +73,7 @@ def _create_thumbnail(physical_file: PhysicalFile) -> None:
     else:
         image_source = physical_file_path
 
-    with Image.open(image_source) as image:
-        image = ImageOps.exif_transpose(image)
-        image.thumbnail((config.thumbnails_max_size, config.thumbnails_max_size), Image.Resampling.LANCZOS)
-        image.save(
-            file_service.build_thumbnail_path(physical_file.mongo_id),
-            quality=config.thumbnails_quality,
-            method=config.thumbnails_method
-        )
+    return Image.open(image_source)
 
 
 @mongo_transaction
@@ -217,8 +221,14 @@ async def complete_upload(
         raise UploadNotFoundError
 
     if temporary_file.virtual_file_id:
-        if virtual_file := await virtual_file_repository.get_by_id(temporary_file.virtual_file_id):
-            return file_service.create_virtual_file_response(virtual_file), False
+        if (
+            (virtual_file := await virtual_file_repository.get_by_id(temporary_file.virtual_file_id))
+            and
+            virtual_file.physical_file_id
+            and
+            (physical_file := await physical_file_repository.get_by_id(virtual_file.physical_file_id))
+        ):
+            return file_service.create_file(physical_file, virtual_file), False
         else:
             raise UploadNotFoundError
 
@@ -247,10 +257,16 @@ async def complete_upload(
                 temporary_file_path.move,
                 file_service.build_physical_file_path(physical_file.mongo_id)
             )
-            _create_thumbnail(physical_file)
+
+            if image := _open_file_image(physical_file):
+                physical_file.width, physical_file.height = image.size
+
+                with image:
+                    _create_thumbnail(physical_file.mongo_id, image)
 
         return (
             file_service.create_file(
+                physical_file,
                 await _persist_completed_upload(
                     temporary_file,
                     physical_file,
