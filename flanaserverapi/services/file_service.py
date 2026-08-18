@@ -36,9 +36,15 @@ async def _clean_up_physical_files(
     await _clean_up_files(physical_file_ids, config.thumbnails_path)
 
 
-async def _clean_up_temporary_files(temporary_file_repository: TemporaryFileRepository) -> None:
+async def _clean_up_temporary_files(
+    temporary_file_repository: TemporaryFileRepository,
+    virtual_file_repository: VirtualFileRepository
+) -> None:
     await _clean_up_files(
-        {temporary_file.mongo_id async for temporary_file in _iter_valid_temporary_files(temporary_file_repository)},
+        {
+            temporary_file.mongo_id
+            async for temporary_file in _iter_valid_temporary_files(temporary_file_repository, virtual_file_repository)
+        },
         config.temporary_files_path
     )
 
@@ -135,7 +141,7 @@ async def _get_used_storage(
     async for physical_file in _iter_valid_physical_files(physical_file_repository, virtual_file_repository):
         used_storage += physical_file.size
 
-    async for temporary_file in _iter_valid_temporary_files(temporary_file_repository):
+    async for temporary_file in _iter_valid_temporary_files(temporary_file_repository, virtual_file_repository):
         if not temporary_file.virtual_file_id:
             used_storage += temporary_file.size
 
@@ -186,7 +192,8 @@ async def _iter_valid_physical_files(
 
 
 async def _iter_valid_temporary_files(
-    temporary_file_repository: TemporaryFileRepository
+    temporary_file_repository: TemporaryFileRepository,
+    virtual_file_repository: VirtualFileRepository
 ) -> AsyncGenerator[TemporaryFile]:
     now = datetime.datetime.now(datetime.UTC)
     temporary_file_ids_to_delete = []
@@ -196,11 +203,19 @@ async def _iter_valid_temporary_files(
             now < temporary_file.created_at + config.temporary_files_ttl
             and
             (
-                now < temporary_file.created_at + config.temporary_files_cleanup_protection_period
-                or
                 temporary_file.virtual_file_id
+                and
+                await virtual_file_repository.get_by_id(temporary_file.virtual_file_id)
                 or
-                build_temporary_file_path(temporary_file.mongo_id).is_file()
+                (
+                    not temporary_file.virtual_file_id
+                    and
+                    (
+                        now < temporary_file.created_at + config.temporary_files_cleanup_protection_period
+                        or
+                        build_temporary_file_path(temporary_file.mongo_id).is_file()
+                    )
+                )
             )
         ):
             yield temporary_file
@@ -228,8 +243,8 @@ async def clean_up_files(
     virtual_file_repository: VirtualFileRepository
 ) -> None:
     await _clean_up_physical_files(physical_file_repository, virtual_file_repository)
-    await _clean_up_temporary_files(temporary_file_repository)
     await _clean_up_virtual_files(physical_file_repository, virtual_file_repository)
+    await _clean_up_temporary_files(temporary_file_repository, virtual_file_repository)
 
 
 def create_file_response(physical_file: PhysicalFile, virtual_file: VirtualFile) -> FileResponse:
