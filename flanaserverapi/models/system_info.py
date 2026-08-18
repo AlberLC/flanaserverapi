@@ -3,8 +3,8 @@ from typing import Any, Self
 
 from pydantic import BaseModel
 
-from api.schemas.ip_geolocations import IpGeolocation
 from config import config
+from models.ip_geolocations import IpGeolocation
 
 
 class SystemInfo(BaseModel):

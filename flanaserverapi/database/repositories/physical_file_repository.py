@@ -1,9 +1,9 @@
 from bson import ObjectId
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.files import PhysicalFile
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.files import PhysicalFile
 
 
 class PhysicalFileRepository(Repository[PhysicalFile, ObjectId]):

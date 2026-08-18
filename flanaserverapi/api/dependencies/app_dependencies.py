@@ -7,12 +7,12 @@ from starlette.requests import HTTPConnection
 
 from api.dependencies.http_dependencies import get_http_session, get_ip
 from api.dependencies.repository_dependencies import get_repository
-from api.schemas.app import App
-from api.schemas.client_context import ClientContext
 from config import config
 from custom_types import AppId
 from database.repositories.app_repository import AppRepository
 from enums import ReleaseType
+from models.app import App
+from models.client_context import ClientContext
 from services import client_context_service
 from services.app_monitor import AppMonitor
 

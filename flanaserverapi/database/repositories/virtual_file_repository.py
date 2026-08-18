@@ -1,8 +1,8 @@
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.files import VirtualFile
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.files import VirtualFile
 
 
 class VirtualFileRepository(Repository[VirtualFile, str]):

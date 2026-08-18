@@ -4,9 +4,9 @@ from typing import Any
 
 import aiohttp
 
-from api.schemas.ip_geolocations import CachedIpGeolocation, IpGeolocation
 from config import config
 from database.repositories.cached_ip_geolocation_repository import CachedIpGeolocationRepository
+from models.ip_geolocations import CachedIpGeolocation, IpGeolocation
 
 
 async def _get_geojs_data(ip: str, session: aiohttp.ClientSession) -> dict[str, Any] | None:

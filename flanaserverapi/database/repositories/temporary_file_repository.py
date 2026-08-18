@@ -1,8 +1,8 @@
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.files import TemporaryFile
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.files import TemporaryFile
 
 
 class TemporaryFileRepository(Repository[TemporaryFile, str]):

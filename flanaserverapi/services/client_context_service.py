@@ -2,7 +2,7 @@ import json
 
 import aiohttp
 
-from api.schemas.client_context import ClientContext, SystemInfo
+from models.client_context import ClientContext, SystemInfo
 from services import ip_geolocation_service
 from utils import crypto_utils
 

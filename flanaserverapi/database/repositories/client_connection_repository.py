@@ -1,9 +1,9 @@
 from bson import ObjectId
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.client_connections import ClientConnection
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.client_connections import ClientConnection
 
 
 class ClientConnectionRepository(Repository[ClientConnection, ObjectId]):

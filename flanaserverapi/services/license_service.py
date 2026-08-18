@@ -1,8 +1,8 @@
 import datetime
 
-from api.schemas.app import App
-from api.schemas.client_context import ClientContext
-from api.schemas.licenses import License
+from models.app import App
+from models.client_context import ClientContext
+from models.licenses import License
 
 
 def generate_license(app: App, client_context: ClientContext) -> License:

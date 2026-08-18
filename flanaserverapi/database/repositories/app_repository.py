@@ -1,8 +1,8 @@
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.app import App
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.app import App
 
 
 class AppRepository(Repository[App, str]):

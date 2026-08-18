@@ -2,9 +2,9 @@ import asyncio
 from asyncio import Condition
 
 from api.dependencies import app_dependencies
-from api.schemas.app import App
 from config import config
 from database.repositories.app_repository import AppRepository
+from models.app import App
 
 
 class AppMonitor:

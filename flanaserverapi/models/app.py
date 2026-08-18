@@ -1,8 +1,8 @@
 from pydantic import Field
 
-from api.schemas.bases import MongoModel
-from api.schemas.licenses import LicenseConfig
-from api.schemas.system_info import SystemInfo
+from models.bases import MongoModel
+from models.licenses import LicenseConfig
+from models.system_info import SystemInfo
 
 
 class App(MongoModel[str]):

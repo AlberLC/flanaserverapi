@@ -1,22 +1,13 @@
-import datetime
 from typing import Self
 
-from pydantic import Field
+from pydantic import BaseModel
 
-from api.schemas.app_installation_paths import AppInstallationPaths
-from api.schemas.bases import ObjectIdModel
-from api.schemas.system_info import SystemInfo
 from custom_types import AppId
+from models.client_connections import ClientConnection
 
 
-class ClientConnection(ObjectIdModel):
-    app_id: AppId
-    system_info: SystemInfo | None = None
-    app_installation_paths: AppInstallationPaths = Field(default_factory=AppInstallationPaths)
-    date: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
-
-
-class ClientConnectionSummary(ObjectIdModel):
+class ClientConnectionSummary(BaseModel):
+    id: str
     app_id: AppId
     username: str | None = None
     hostname: str | None = None
@@ -51,7 +42,7 @@ class ClientConnectionSummary(ObjectIdModel):
             ip_geolocation = None
 
         return cls(
-            _id=client_connection.mongo_id,
+            id=str(client_connection.mongo_id),
             app_id=client_connection.app_id,
             username=client_connection.system_info.username,
             hostname=client_connection.system_info.hostname,

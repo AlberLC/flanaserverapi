@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from api.schemas.system_info import SystemInfo
+from models.system_info import SystemInfo
 
 
 class ClientContext(BaseModel):

@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from api.schemas.bases import MongoModel
+from models.bases import MongoModel
 
 
 class IpGeolocation(BaseModel):

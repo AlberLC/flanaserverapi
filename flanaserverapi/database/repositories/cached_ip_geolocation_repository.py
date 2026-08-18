@@ -1,8 +1,8 @@
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.ip_geolocations import CachedIpGeolocation
 from database.database_client import database
 from database.repositories.repository import Repository
+from models.ip_geolocations import CachedIpGeolocation
 
 
 class CachedIpGeolocationRepository(Repository[CachedIpGeolocation, str]):

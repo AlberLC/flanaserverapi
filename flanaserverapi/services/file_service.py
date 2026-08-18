@@ -9,13 +9,13 @@ from bson import ObjectId
 from fastapi import Request
 from fastapi.datastructures import URL
 
-from api.schemas.files import File, Files, PhysicalFile, TemporaryFile, VirtualFile
+from api.schemas.files import File, Files
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from database.transactions import mongo_transaction
-from utils import file_utils
+from models.files import PhysicalFile, TemporaryFile, VirtualFile
 
 
 async def _clean_up_files(ids: set[str], files_path: Path) -> None:

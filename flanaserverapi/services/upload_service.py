@@ -12,7 +12,7 @@ from bson import ObjectId
 
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
-from api.schemas.files import File, PhysicalFile, TemporaryFile, VirtualFile
+from api.schemas.files import File
 from api.schemas.upload_state import UploadState
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
@@ -20,6 +20,7 @@ from database.repositories.temporary_file_repository import TemporaryFileReposit
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from database.transactions import mongo_transaction
 from exceptions import IncompleteUploadError, InvalidChunkError, UploadFinalizedError, UploadNotFoundError
+from models.files import PhysicalFile, TemporaryFile, VirtualFile
 from services import file_service
 from utils import crypto_utils, file_utils
 

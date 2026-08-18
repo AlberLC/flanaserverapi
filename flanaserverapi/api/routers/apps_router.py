@@ -16,12 +16,13 @@ from api.dependencies.app_dependencies import (
 )
 from api.dependencies.http_dependencies import check_access_token
 from api.dependencies.repository_dependencies import get_repository
-from api.schemas.app import App
-from api.schemas.client_connections import ClientConnection, ClientConnectionSummary
-from api.schemas.client_context import ClientContext
+from api.schemas.client_connection_summary import ClientConnectionSummary
 from config import config
 from custom_types import AppId
 from database.repositories.client_connection_repository import ClientConnectionRepository
+from models.app import App
+from models.client_connections import ClientConnection
+from models.client_context import ClientContext
 from services import license_service
 from utils import crypto_utils, encoding_utils
 
