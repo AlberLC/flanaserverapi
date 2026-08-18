@@ -100,12 +100,12 @@ async def _delete_virtual_files(
         if virtual_file.physical_file_id:
             referenced_virtual_file_ids_to_pull[virtual_file.physical_file_id].append(virtual_file.mongo_id)
 
-    for physical_file_id, virtual_file_ids in referenced_virtual_file_ids_to_pull.items():
+    for physical_file_id, virtual_file_ids_to_pull in referenced_virtual_file_ids_to_pull.items():
         physical_file = physical_files_by_id[physical_file_id]
 
-        if len(physical_file.virtual_file_ids) > len(virtual_file_ids):
+        if len(physical_file.virtual_file_ids) > len(virtual_file_ids_to_pull):
             await physical_file_repository.partial_update_one(
-                {'_id': physical_file_id}, {'$pull': {'virtual_file_ids': {'$in': virtual_file_ids}}}
+                {'_id': physical_file_id}, {'$pull': {'virtual_file_ids': {'$in': virtual_file_ids_to_pull}}}
             )
         else:
             physical_file_ids_to_delete.append(physical_file.mongo_id)
