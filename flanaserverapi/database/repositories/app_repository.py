@@ -5,6 +5,6 @@ from database.database_client import database
 from database.repositories.repository import Repository
 
 
-class AppRepository(Repository[App]):
+class AppRepository(Repository[App, str]):
     def __init__(self, session: AsyncClientSession | None = None) -> None:
         super().__init__(database['app'], session)
