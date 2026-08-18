@@ -381,7 +381,7 @@ async def get_file(
     filter = {'_id': file_id}
 
     if access_token_hash:
-        filter = {'access_token_hash': access_token_hash}
+        filter['access_token_hash'] = access_token_hash
 
     if (
         not (virtual_file := await virtual_file_repository.get_one(filter))
