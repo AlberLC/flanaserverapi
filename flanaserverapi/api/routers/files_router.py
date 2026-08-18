@@ -3,13 +3,13 @@ import urllib.parse
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, status
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse as FastAPIFileResponse, HTMLResponse, RedirectResponse, Response
 
 from api import responses
 from api.dependencies.http_dependencies import get_access_token_hash
 from api.dependencies.repository_dependencies import get_repository
 from api.routers import uploads_router
-from api.schemas.files import File, Files
+from api.schemas.file_responses import FileResponse, FilesResponse
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
@@ -27,8 +27,8 @@ async def get_files(
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1)] = config.files_default_limit
-) -> Files:
-    return await file_service.get_files(
+) -> FilesResponse:
+    return await file_service.get_files_response(
         access_token_hash,
         physical_file_repository,
         virtual_file_repository,
@@ -43,9 +43,9 @@ async def get_file(
     access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> File:
+) -> FileResponse:
     try:
-        return await file_service.get_file(
+        return await file_service.get_file_response(
             file_id,
             access_token_hash,
             physical_file_repository,
@@ -60,7 +60,7 @@ async def get_file_content(
     file_id: str,
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> FileResponse | Response:
+) -> FastAPIFileResponse | Response:
     try:
         physical_file, virtual_file = await file_service.get_file_models(
             file_id,
@@ -71,7 +71,7 @@ async def get_file_content(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
     if config.environment is Environment.DEVELOPMENT:
-        return FileResponse(
+        return FastAPIFileResponse(
             file_service.build_physical_file_path(physical_file.mongo_id),
             media_type=physical_file.mime_type,
             filename=virtual_file.name,
@@ -116,16 +116,16 @@ async def get_file_embed_page(
 
 @router.get(
     '/{file_id}/thumbnail',
-    response_class=FileResponse,
+    response_class=FastAPIFileResponse,
     responses={status.HTTP_200_OK: {'content': {mimetypes.types_map[config.thumbnails_extension]: {}}}}
 )
 async def get_file_thumbnail(
     file_id: str,
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> FileResponse:
+) -> FastAPIFileResponse:
     try:
-        return FileResponse(
+        return FastAPIFileResponse(
             await file_service.get_file_thumbnail_path(file_id, physical_file_repository, virtual_file_repository),
             media_type=mimetypes.types_map[config.thumbnails_extension]
         )

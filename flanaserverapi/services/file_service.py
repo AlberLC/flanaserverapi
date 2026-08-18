@@ -9,7 +9,7 @@ from bson import ObjectId
 from fastapi import Request
 from fastapi.datastructures import URL
 
-from api.schemas.files import File, Files
+from api.schemas.file_responses import FileResponse, FilesResponse
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
@@ -232,8 +232,8 @@ async def clean_up_files(
     await _clean_up_virtual_files(physical_file_repository, virtual_file_repository)
 
 
-def create_file(physical_file: PhysicalFile, virtual_file: VirtualFile) -> File:
-    return File(
+def create_file_response(physical_file: PhysicalFile, virtual_file: VirtualFile) -> FileResponse:
+    return FileResponse(
         id=virtual_file.mongo_id,
         name=virtual_file.name,
         url=f'/files/{virtual_file.mongo_id}/content',
@@ -445,13 +445,13 @@ async def get_file_thumbnail_path(
     return config.default_thumbnail_path
 
 
-async def get_files(
+async def get_files_response(
     access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository,
     skip: int = 0,
     limit: int | None = None
-) -> Files:
+) -> FilesResponse:
     virtual_files = [
         virtual_file
         async for virtual_file in virtual_file_repository.iter(
@@ -464,9 +464,9 @@ async def get_files(
     physical_files_by_id = await _get_physical_files_by_id(virtual_files, physical_file_repository)
 
     # noinspection bad-index
-    return Files(
+    return FilesResponse(
         files=[
-            create_file(physical_files_by_id[virtual_file.physical_file_id], virtual_file)
+            create_file_response(physical_files_by_id[virtual_file.physical_file_id], virtual_file)
             for virtual_file in virtual_files
             if virtual_file.physical_file_id
         ],
@@ -474,10 +474,10 @@ async def get_files(
     )
 
 
-async def get_file(
+async def get_file_response(
     file_id: str,
     access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository
-) -> File:
-    return create_file(*await get_file_models(file_id, physical_file_repository, virtual_file_repository, access_token_hash))
+) -> FileResponse:
+    return create_file_response(*await get_file_models(file_id, physical_file_repository, virtual_file_repository, access_token_hash))

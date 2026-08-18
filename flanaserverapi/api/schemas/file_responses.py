@@ -3,7 +3,7 @@ import datetime
 from pydantic import BaseModel, Field
 
 
-class File(BaseModel):
+class FileResponse(BaseModel):
     id: str
     name: str
     url: str
@@ -15,6 +15,6 @@ class File(BaseModel):
     expires_at: datetime.datetime | None
 
 
-class Files(BaseModel):
-    files: list[File]
+class FilesResponse(BaseModel):
+    files: list[FileResponse]
     total: int

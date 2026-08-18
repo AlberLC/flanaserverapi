@@ -12,7 +12,7 @@ from bson import ObjectId
 
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
-from api.schemas.files import File
+from api.schemas.file_responses import FileResponse
 from api.schemas.upload_state import UploadState
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
@@ -213,7 +213,7 @@ async def complete_upload(
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
-) -> tuple[File, bool]:
+) -> tuple[FileResponse, bool]:
     if not (
         temporary_file := await temporary_file_repository.get_one(
             {'_id': upload_id, 'access_token_hash': access_token_hash}
@@ -229,7 +229,7 @@ async def complete_upload(
             and
             (physical_file := await physical_file_repository.get_by_id(virtual_file.physical_file_id))
         ):
-            return file_service.create_file(physical_file, virtual_file), False
+            return file_service.create_file_response(physical_file, virtual_file), False
         else:
             raise UploadNotFoundError
 
@@ -266,7 +266,7 @@ async def complete_upload(
                     _create_thumbnail(physical_file.mongo_id, image)
 
         return (
-            file_service.create_file(
+            file_service.create_file_response(
                 physical_file,
                 await _persist_completed_upload(
                     temporary_file,
