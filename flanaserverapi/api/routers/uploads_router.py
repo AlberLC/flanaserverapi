@@ -61,7 +61,7 @@ async def complete_upload(
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> JSONResponse:
     try:
-        virtual_file_response, was_created = await upload_service.complete_upload(
+        file, was_created = await upload_service.complete_upload(
             upload_id,
             access_token_hash,
             physical_file_repository,
@@ -76,7 +76,7 @@ async def complete_upload(
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
     return JSONResponse(
-        virtual_file_response.model_dump(mode='json'),
+        file.model_dump(mode='json'),
         status.HTTP_201_CREATED if was_created else status.HTTP_200_OK
     )
 

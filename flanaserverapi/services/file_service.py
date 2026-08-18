@@ -9,9 +9,7 @@ from bson import ObjectId
 from fastapi import Request
 from fastapi.datastructures import URL
 
-from api.schemas.physical_file import PhysicalFile
-from api.schemas.temporary_file import TemporaryFile
-from api.schemas.virtual_files import VirtualFile, VirtualFileResponse, VirtualFiles
+from api.schemas.files import File, Files, PhysicalFile, TemporaryFile, VirtualFile
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
@@ -223,12 +221,15 @@ async def clean_up_files(
     await _clean_up_virtual_files(physical_file_repository, virtual_file_repository)
 
 
-def create_virtual_file_response(virtual_file: VirtualFile) -> VirtualFileResponse:
-    return VirtualFileResponse(
-        **virtual_file.model_dump(by_alias=True),
+def create_file(physical_file: PhysicalFile, virtual_file: VirtualFile) -> File:
+    return File(
+        id=virtual_file.mongo_id,
+        name=virtual_file.name,
         url=f'/files/{virtual_file.mongo_id}/content',
         embed_url=f'/files/{virtual_file.mongo_id}/embed',
-        thumbnail_url=f'/files/{virtual_file.mongo_id}/thumbnail'
+        thumbnail_url=f'/files/{virtual_file.mongo_id}/thumbnail',
+        created_at=virtual_file.created_at,
+        expires_at=virtual_file.expires_at
     )
 
 
@@ -372,7 +373,7 @@ async def generate_embed_page(
         '''
 
 
-async def get_file(
+async def get_file_models(
     file_id: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository,
@@ -428,7 +429,6 @@ async def get_files(
     virtual_file_repository: VirtualFileRepository,
     skip: int = 0,
     limit: int | None = None
-) -> VirtualFiles:
     return VirtualFiles(
         files=[
             create_virtual_file_response(virtual_file)
@@ -438,17 +438,18 @@ async def get_files(
                 skip=skip,
                 limit=limit
             )
+) -> Files:
         ],
         total=await virtual_file_repository.count({'access_token_hash': access_token_hash})
     )
 
 
-async def get_virtual_file_response(
+async def get_file(
     file_id: str,
     access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
-    virtual_file_repository: VirtualFileRepository,
-) -> VirtualFileResponse:
     return create_virtual_file_response(
         (await get_file(file_id, physical_file_repository, virtual_file_repository, access_token_hash))[1]
     )
+    virtual_file_repository: VirtualFileRepository
+) -> File:

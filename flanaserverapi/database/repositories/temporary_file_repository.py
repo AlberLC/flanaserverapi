@@ -1,6 +1,6 @@
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from api.schemas.temporary_file import TemporaryFile
+from api.schemas.files import TemporaryFile
 from database.database_client import database
 from database.repositories.repository import Repository
 

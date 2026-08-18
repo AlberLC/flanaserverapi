@@ -9,7 +9,7 @@ from api import responses
 from api.dependencies.http_dependencies import get_access_token_hash
 from api.dependencies.repository_dependencies import get_repository
 from api.routers import uploads_router
-from api.schemas.virtual_files import VirtualFileResponse, VirtualFiles
+from api.schemas.files import File, Files
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
@@ -26,8 +26,8 @@ async def get_files(
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1)] = config.files_default_limit
-) -> VirtualFiles:
     return await file_service.get_files(access_token_hash, virtual_file_repository, skip, limit)
+) -> Files:
 
 
 @router.get('/{file_id}')
@@ -36,9 +36,9 @@ async def get_file(
     access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> VirtualFileResponse:
+) -> File:
     try:
-        return await file_service.get_virtual_file_response(
+        return await file_service.get_file(
             file_id,
             access_token_hash,
             physical_file_repository,
@@ -55,7 +55,7 @@ async def get_file_content(
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> FileResponse | Response:
     try:
-        physical_file, virtual_file = await file_service.get_file(
+        physical_file, virtual_file = await file_service.get_file_models(
             file_id,
             physical_file_repository,
             virtual_file_repository

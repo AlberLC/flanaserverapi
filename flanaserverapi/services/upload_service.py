@@ -11,10 +11,8 @@ from PIL import Image, ImageOps
 
 from api.schemas.create_upload_request import CreateUploadRequest
 from api.schemas.create_upload_response import CreateUploadResponse
-from api.schemas.physical_file import PhysicalFile
-from api.schemas.temporary_file import TemporaryFile
+from api.schemas.files import File, PhysicalFile, TemporaryFile, VirtualFile
 from api.schemas.upload_state import UploadState
-from api.schemas.virtual_files import VirtualFile, VirtualFileResponse
 from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.temporary_file_repository import TemporaryFileRepository
@@ -210,7 +208,7 @@ async def complete_upload(
     physical_file_repository: PhysicalFileRepository,
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
-) -> tuple[VirtualFileResponse, bool]:
+) -> tuple[File, bool]:
     if not (
         temporary_file := await temporary_file_repository.get_one(
             {'_id': upload_id, 'access_token_hash': access_token_hash}
@@ -252,7 +250,7 @@ async def complete_upload(
             _create_thumbnail(physical_file)
 
         return (
-            file_service.create_virtual_file_response(
+            file_service.create_file(
                 await _persist_completed_upload(
                     temporary_file,
                     physical_file,
