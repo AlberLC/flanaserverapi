@@ -251,6 +251,7 @@ def create_file_response(physical_file: PhysicalFile, virtual_file: VirtualFile)
     return FileResponse(
         id=virtual_file.mongo_id,
         name=virtual_file.name,
+        mime_type=physical_file.mime_type,
         url=f'/files/{virtual_file.mongo_id}/content',
         embed_url=f'/files/{virtual_file.mongo_id}/embed',
         thumbnail_url=f'/files/{virtual_file.mongo_id}/thumbnail',

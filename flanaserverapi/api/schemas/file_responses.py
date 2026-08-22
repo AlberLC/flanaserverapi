@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class FileResponse(BaseModel):
     id: str
     name: str
+    mime_type: str
     url: str
     embed_url: str
     thumbnail_url: str
