@@ -1,3 +1,4 @@
+import datetime
 import mimetypes
 import urllib.parse
 from typing import Annotated
@@ -14,6 +15,7 @@ from config import config
 from database.repositories.physical_file_repository import PhysicalFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from enums import Environment
+from exceptions import InvalidCursorError
 from services import file_service
 
 router = APIRouter(prefix='/files', tags=['files'])
@@ -25,16 +27,23 @@ async def get_files(
     access_token_hash: Annotated[str, Depends(get_access_token_hash)],
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))],
+    after_created_at: datetime.datetime | None = None,
     skip: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1)] = config.files_default_limit
+    limit: Annotated[int, Query(ge=1)] | None = None,
+    cursor: str | None = None
 ) -> FilesResponse:
-    return await file_service.get_files_response(
-        access_token_hash,
-        physical_file_repository,
-        virtual_file_repository,
-        skip,
-        limit
-    )
+    try:
+        return await file_service.get_files_response(
+            access_token_hash,
+            physical_file_repository,
+            virtual_file_repository,
+            after_created_at,
+            skip,
+            limit,
+            cursor
+        )
+    except InvalidCursorError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
 
 
 @router.get('/{file_id}')

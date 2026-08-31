@@ -8,6 +8,11 @@ class InvalidChunkError(Exception):
         super().__init__('Invalid upload chunk')
 
 
+class InvalidCursorError(Exception):
+    def __init__(self) -> None:
+        super().__init__('Invalid cursor')
+
+
 class NotVideoFileError(Exception):
     def __init__(self) -> None:
         super().__init__('Not a video file')

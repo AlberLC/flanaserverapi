@@ -79,10 +79,11 @@ class MongoSettings(AppSettings):
         ],
         'virtual_file': [
             {
-                'name': 'access_token_hash_1_created_at_-1',
+                'name': 'access_token_hash_1_created_at_-1_id_1',
                 'keys': [
                     'access_token_hash',
-                    ('created_at', pymongo.DESCENDING)
+                    ('created_at', pymongo.DESCENDING),
+                    '_id'
                 ]
             }
         ]
@@ -127,14 +128,15 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     file_name_min_length: int = 10
     file_not_found_error_message: str = 'File not found'
     files_cleaner_sleep: float = datetime.timedelta(minutes=5).total_seconds()
-    files_default_limit: int = 20
     files_max_storage_size: int = 20_000_000_000
     flanabot_access_token_hash: str
     id_length: int = 6
     max_client_connections: int = 1000
+    microseconds_per_second: int = 1_000_000
     mime_types: dict[str, str] = {'bytes': 'application/octet-stream', 'zip': 'application/zip'}
     open_graph_type_map: dict[str, str] = {'audio': 'music.song', 'image': 'image', 'video': 'video.other'}
     private_key: Annotated[bytes, BeforeValidator(base64.b64decode)]
+    public_key: Annotated[bytes, BeforeValidator(base64.b64decode)]
     shutdown_ws_message: str = 'shutdown'
     symmetric_key: Annotated[bytes, BeforeValidator(base64.b64decode)]
     system_info_identifying_attributes: tuple[str, ...] = ('username', 'hostname', 'mac_address', 'ip_geolocation')
@@ -144,6 +146,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     thumbnails_max_size: int = 640
     thumbnails_method: int = 6
     thumbnails_quality: int = 85
+    timestamp_bytes: int = 7
     upload_chunk_size: int = 5_242_880
     upload_max_size: int = 3_000_000_000
 

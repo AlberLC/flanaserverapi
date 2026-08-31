@@ -1,9 +1,12 @@
 import asyncio
+import base64
 import datetime
 from collections import defaultdict
 from collections.abc import AsyncGenerator, Iterable, Sequence
 from pathlib import Path
+from typing import Any
 
+import cryptography.exceptions
 import pymongo
 from bson import ObjectId
 from fastapi import Request
@@ -15,7 +18,9 @@ from database.repositories.physical_file_repository import PhysicalFileRepositor
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from database.transactions import mongo_transaction
+from exceptions import InvalidCursorError
 from models.files import PhysicalFile, TemporaryFile, VirtualFile
+from utils import crypto_utils
 
 
 async def _clean_up_files(ids: set[str], files_path: Path) -> None:
@@ -66,6 +71,20 @@ async def _clean_up_virtual_files(
     await virtual_file_repository.delete({'_id': {'$in': virtual_file_ids_to_delete}})
 
 
+def _decode_cursor(cursor: str) -> tuple[datetime.datetime, str]:
+    try:
+        payload, b64_encoded_signature = base64.urlsafe_b64decode(cursor).rsplit(b'.', maxsplit=1)  # todo waiting for Python 3.15's padded parameter
+
+        crypto_utils.verify(payload, base64.b64decode(b64_encoded_signature))
+    except ValueError, cryptography.exceptions.InvalidSignature:
+        raise InvalidCursorError
+
+    b64_encoded_timestamp, mongo_id_bytes = payload.split(b'.', maxsplit=1)
+    timestamp = int.from_bytes(base64.b64decode(b64_encoded_timestamp)) / config.microseconds_per_second
+
+    return datetime.datetime.fromtimestamp(timestamp, datetime.UTC), mongo_id_bytes.decode()
+
+
 async def _delete_file(file_path: Path) -> None:
     try:
         await asyncio.to_thread(file_path.unlink, missing_ok=True)
@@ -112,6 +131,14 @@ async def _delete_virtual_files(
 
     await virtual_file_repository.delete({'_id': {'$in': virtual_file_ids_to_delete}})
     await _delete_physical_files(physical_file_ids_to_delete, physical_file_repository)
+
+
+def _encode_cursor(created_at: datetime.datetime, mongo_id: str) -> str:
+    timestamp = int(created_at.timestamp() * config.microseconds_per_second)
+    payload = base64.b64encode(timestamp.to_bytes(config.timestamp_bytes)) + b'.' + mongo_id.encode()
+    b64_encoded_signature = base64.b64encode(crypto_utils.sign(payload))
+
+    return base64.urlsafe_b64encode(payload + b'.' + b64_encoded_signature).decode()
 
 
 async def _get_physical_files_by_id(
@@ -465,18 +492,36 @@ async def get_files_response(
     access_token_hash: str,
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository,
+    after_created_at: datetime.datetime | None = None,
     skip: int = 0,
-    limit: int | None = None
+    limit: int | None = None,
+    cursor: str | None = None
 ) -> FilesResponse:
+    filter: dict[str, Any] = {'access_token_hash': access_token_hash}
+
+    if cursor:
+        created_at, mongo_id = _decode_cursor(cursor)
+        filter['$or'] = ({'created_at': created_at, '_id': {'$gt': mongo_id}}, {'created_at': {'$lt': created_at}})
+    elif after_created_at:
+        filter['created_at'] = {'$gt': after_created_at}
+
     virtual_files = [
         virtual_file
         async for virtual_file in virtual_file_repository.iter(
-            {'access_token_hash': access_token_hash},
-            sort=(('created_at', pymongo.DESCENDING),),
+            filter,
+            sort=(('created_at', pymongo.DESCENDING), '_id'),
             skip=skip,
-            limit=limit
+            limit=limit + 1 if limit else limit
         )
     ]
+
+    if limit and len(virtual_files) > limit:
+        virtual_files.pop()
+        last_virtual_file = virtual_files[-1]
+        next_cursor = _encode_cursor(last_virtual_file.created_at, last_virtual_file.mongo_id)
+    else:
+        next_cursor = None
+
     physical_files_by_id = await _get_physical_files_by_id(virtual_files, physical_file_repository)
 
     # noinspection bad-index
@@ -486,6 +531,7 @@ async def get_files_response(
             for virtual_file in virtual_files
             if virtual_file.physical_file_id
         ],
+        next_cursor=next_cursor,
         total=await virtual_file_repository.count({'access_token_hash': access_token_hash})
     )
 

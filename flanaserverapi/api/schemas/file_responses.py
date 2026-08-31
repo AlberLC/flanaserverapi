@@ -18,4 +18,5 @@ class FileResponse(BaseModel):
 
 class FilesResponse(BaseModel):
     files: list[FileResponse]
+    next_cursor: str | None = None
     total: int
