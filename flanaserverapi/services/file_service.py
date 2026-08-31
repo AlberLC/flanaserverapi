@@ -297,7 +297,7 @@ async def enforce_storage_limit(
     physical_files_to_delete_by_id = {}
     virtual_file_ids_to_delete = []
 
-    async for physical_file in physical_file_repository.iter(sort_keys=('created_at',)):
+    async for physical_file in physical_file_repository.iter(sort=('created_at',)):
         virtual_file_ids_to_delete.extend(physical_file.virtual_file_ids)
         physical_files_to_delete_by_id[physical_file.mongo_id] = physical_file
         used_storage -= physical_file.size
@@ -317,7 +317,7 @@ async def enforce_storage_limit(
 
     temporary_file_ids_to_delete = []
 
-    async for temporary_file in temporary_file_repository.iter({'virtual_file_id': None}, sort_keys=('created_at',)):
+    async for temporary_file in temporary_file_repository.iter({'virtual_file_id': None}, sort=('created_at',)):
         temporary_file_ids_to_delete.append(temporary_file.mongo_id)
         used_storage -= temporary_file.size
 
@@ -472,7 +472,7 @@ async def get_files_response(
         virtual_file
         async for virtual_file in virtual_file_repository.iter(
             {'access_token_hash': access_token_hash},
-            sort_keys=(('created_at', pymongo.DESCENDING),),
+            sort=(('created_at', pymongo.DESCENDING),),
             skip=skip,
             limit=limit
         )

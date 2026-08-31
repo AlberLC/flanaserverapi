@@ -51,7 +51,7 @@ async def get_last_client_connections(
         ClientConnectionSummary.from_client_connection(last_client_connection)
         for last_client_connection in await client_connection_repository.get(
             filter_,
-            sort_keys=(('_id', pymongo.DESCENDING),),
+            sort=(('_id', pymongo.DESCENDING),),
             limit=limit
         )
     ]
@@ -99,7 +99,7 @@ async def get_license(
     await client_connection_repository.insert_one(
         client_connection,
         max_documents=config.max_client_connections,
-        max_documents_sort_keys=('date',)
+        max_documents_sort=('date',)
     )
 
     license_ = license_service.generate_license(app, client_context)
