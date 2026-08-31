@@ -39,8 +39,8 @@ async def get_last_client_connections(
         ClientConnectionRepository,
         Depends(get_repository(ClientConnectionRepository))
     ],
-    limit: int | None = None,
-    after_id: str | None = None
+    after_id: str | None = None,
+    limit: int | None = None
 ) -> list[ClientConnectionSummary]:
     filter_: dict[str, Any] = {'system_info.ip_geolocation.ip': {'$ne': None}}
 

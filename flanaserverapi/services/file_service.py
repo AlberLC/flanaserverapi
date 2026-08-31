@@ -496,4 +496,6 @@ async def get_file_response(
     physical_file_repository: PhysicalFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> FileResponse:
-    return create_file_response(*await get_file_models(file_id, physical_file_repository, virtual_file_repository, access_token_hash))
+    return create_file_response(
+        *await get_file_models(file_id, physical_file_repository, virtual_file_repository, access_token_hash)
+    )
