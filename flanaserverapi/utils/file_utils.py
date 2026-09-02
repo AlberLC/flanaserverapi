@@ -28,8 +28,8 @@ def extract_video_frame(file_path: str | Path) -> bytes:
 
     try:
         return subprocess.run(cmd, capture_output=True, check=True).stdout
-    except subprocess.CalledProcessError as e:
-        raise ThumbnailError from e
+    except subprocess.CalledProcessError:
+        raise ThumbnailError
 
 
 def get_mime_type(file_path: str | Path) -> str:
