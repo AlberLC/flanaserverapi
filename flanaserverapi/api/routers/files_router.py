@@ -125,21 +125,35 @@ async def get_file_embed_page(
 
 @router.get(
     '/{file_id}/thumbnail',
-    response_class=FastAPIFileResponse,
+    response_model=None,
+    response_class=Response,
     responses={status.HTTP_200_OK: {'content': {mimetypes.types_map[config.thumbnails_extension]: {}}}}
 )
 async def get_file_thumbnail(
     file_id: str,
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
-) -> FastAPIFileResponse:
+) -> FastAPIFileResponse | Response:
     try:
-        return FastAPIFileResponse(
-            await file_service.get_file_thumbnail_path(file_id, physical_file_repository, virtual_file_repository),
-            media_type=mimetypes.types_map[config.thumbnails_extension]
+        thumbnail_path = await file_service.get_file_thumbnail_path(
+            file_id,
+            physical_file_repository,
+            virtual_file_repository
         )
     except FileNotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+    mime_type = mimetypes.types_map[config.thumbnails_extension]
+
+    if config.environment is Environment.DEVELOPMENT:
+        return FastAPIFileResponse(thumbnail_path, media_type=mime_type)
+    else:
+        return Response(
+            headers={
+                'Content-Type': mime_type,
+                'X-Accel-Redirect': file_service.build_thumbnail_accel_redirect_path(thumbnail_path)
+            }
+        )
 
 
 @router.delete('/{file_id}', status_code=status.HTTP_204_NO_CONTENT)

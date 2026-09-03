@@ -260,6 +260,17 @@ def build_temporary_file_path(id: str) -> Path:
     return config.temporary_files_path / id
 
 
+def build_thumbnail_accel_redirect_path(thumbnail_path: Path) -> str:
+    if thumbnail_path.is_relative_to(config.thumbnails_path):
+        url_prefix = '/internal/thumbnails'
+        base_path = config.thumbnails_path
+    else:
+        url_prefix = '/internal/resources/images'
+        base_path = config.images_path
+
+    return f'{url_prefix}/{thumbnail_path.relative_to(base_path)}'
+
+
 def build_thumbnail_path(id: ObjectId) -> Path:
     return (config.thumbnails_path / str(id)).with_suffix(config.thumbnails_extension)
 
