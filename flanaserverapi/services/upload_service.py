@@ -19,7 +19,7 @@ from database.repositories.physical_file_repository import PhysicalFileRepositor
 from database.repositories.temporary_file_repository import TemporaryFileRepository
 from database.repositories.virtual_file_repository import VirtualFileRepository
 from database.transactions import mongo_transaction
-from exceptions import IncompleteUploadError, InvalidChunkError, UploadFinalizedError, UploadNotFoundError
+from exceptions import IncompleteUploadError, InvalidChunkError, PayloadTooLargeError, UploadFinalizedError, UploadNotFoundError
 from models.files import PhysicalFile, TemporaryFile, VirtualFile
 from services import file_service
 from utils import crypto_utils, file_utils
@@ -290,6 +290,9 @@ async def create_upload(
     temporary_file_repository: TemporaryFileRepository,
     virtual_file_repository: VirtualFileRepository
 ) -> CreateUploadResponse:
+    if create_upload_request.file_size > config.files_max_storage_size:
+        raise PayloadTooLargeError(config.files_max_storage_size)
+
     while True:
         temporary_file = TemporaryFile(
             access_token_hash=access_token_hash,

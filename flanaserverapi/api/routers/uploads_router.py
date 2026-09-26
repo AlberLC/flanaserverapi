@@ -14,7 +14,7 @@ from database.repositories.virtual_file_repository import VirtualFileRepository
 from exceptions import (
     IncompleteUploadError,
     InvalidChunkError,
-    ThumbnailError,
+    PayloadTooLargeError, ThumbnailError,
     UploadFinalizedError,
     UploadNotFoundError
 )
@@ -43,13 +43,16 @@ async def create_upload(
     temporary_file_repository: Annotated[TemporaryFileRepository, Depends(get_repository(TemporaryFileRepository))],
     virtual_file_repository: Annotated[VirtualFileRepository, Depends(get_repository(VirtualFileRepository))]
 ) -> CreateUploadResponse:
-    return await upload_service.create_upload(
-        access_token_hash,
-        create_upload_request,
-        physical_file_repository,
-        temporary_file_repository,
-        virtual_file_repository
-    )
+    try:
+        return await upload_service.create_upload(
+            access_token_hash,
+            create_upload_request,
+            physical_file_repository,
+            temporary_file_repository,
+            virtual_file_repository
+        )
+    except PayloadTooLargeError as e:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(e))
 
 
 @router.post('/{upload_id}/complete')
