@@ -78,10 +78,7 @@ async def complete_upload(
     except ThumbnailError as e:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
 
-    return JSONResponse(
-        file.model_dump(mode='json'),
-        status.HTTP_201_CREATED if was_created else status.HTTP_200_OK
-    )
+    return JSONResponse(file.model_dump(mode='json'), status.HTTP_201_CREATED if was_created else status.HTTP_200_OK)
 
 
 @router.patch('/{upload_id}/chunks', status_code=status.HTTP_204_NO_CONTENT)
