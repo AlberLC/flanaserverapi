@@ -24,3 +24,4 @@ def initialize_directories() -> None:
     config.physical_files_path.mkdir(parents=True, exist_ok=True)
     config.temporary_files_path.mkdir(parents=True, exist_ok=True)
     config.thumbnails_path.mkdir(parents=True, exist_ok=True)
+    config.wedding_backup_path.mkdir(parents=True, exist_ok=True)
