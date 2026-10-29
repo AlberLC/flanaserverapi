@@ -252,18 +252,33 @@ async def complete_upload(
             physical_file_repository
         )
 
+        physical_file_path = file_service.build_physical_file_path(physical_file.mongo_id)
+
         if is_physical_file_new:
             # noinspection bad-argument-type
-            await asyncio.to_thread(
-                temporary_file_path.move,
-                file_service.build_physical_file_path(physical_file.mongo_id)
-            )
+            await asyncio.to_thread(temporary_file_path.move, physical_file_path)
 
             if image := _open_file_image(physical_file):
                 physical_file.width, physical_file.height = image.size
 
                 with image:
                     _create_thumbnail(physical_file.mongo_id, image)
+
+        if access_token_hash == '2c181650b98c44dfc36840b3ec99de6abba086e508317d0d9ab58227b8322628':
+            destination = config.wedding_backup_path / temporary_file.name
+
+            if destination.is_file():
+                stem = destination.stem
+                counter = 2
+
+                while (destination := destination.with_name(f'{stem}_{counter}{destination.suffix}')).is_file():
+                    counter += 1
+
+            try:
+                # noinspection bad-argument-type
+                await asyncio.to_thread(physical_file_path.copy, destination)
+            except OSError:
+                pass
 
         return (
             file_service.create_file_response(

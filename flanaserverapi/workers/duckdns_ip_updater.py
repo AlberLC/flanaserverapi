@@ -14,12 +14,13 @@ async def run_ip_updater() -> Never:
 
 
 async def update_ip(session: aiohttp.ClientSession) -> None:
-    try:
-        async with session.get(
-            config.duckdns_ip_updater_endpoint,
-            params={'domains': config.subdomain, 'token': config.duckdns_key, 'ip': ''}
-        ) as response:
-            if await response.text() != 'OK':
-                print(config.duckdns_ip_updater_error_message)
-    except (TimeoutError, aiohttp.ClientError) as e:
-        print(f'{config.duckdns_ip_updater_error_message}: {e}')
+    for subdomain in (config.subdomain, 'enekoalazne', 'enekoyalazne'):
+        try:
+            async with session.get(
+                config.duckdns_ip_updater_endpoint,
+                params={'domains': subdomain, 'token': config.duckdns_key, 'ip': ''}
+            ) as response:
+                if await response.text() != 'OK':
+                    print(config.duckdns_ip_updater_error_message)
+        except (TimeoutError, aiohttp.ClientError) as e:
+            print(f'{config.duckdns_ip_updater_error_message}: {e}')

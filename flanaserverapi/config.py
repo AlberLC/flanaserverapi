@@ -113,6 +113,16 @@ class PathSettings(AppSettings):
     temporary_files_path: Path = files_path / 'temporary_files'
     thumbnails_path: Path = files_path / 'thumbnails'
 
+    wedding_config_path: Path = storage_path / 'wedding_config.json'
+    wedding_qrcode_paths: tuple[Path, Path, Path, Path, Path] = (
+        storage_path / 'qrcode_color_1.png',
+        storage_path / 'qrcode_color_2.png',
+        storage_path / 'qrcode_logo.png',
+        storage_path / 'qrcode_rounded.png',
+        storage_path / 'qrcode.png'
+    )
+    wedding_backup_path: Path = Path('/mnt/g/wedding_files')
+
 
 class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings):
     app_monitor_sleep: float = datetime.timedelta(seconds=1).total_seconds()
@@ -149,6 +159,9 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     timestamp_bytes: int = 7
     upload_chunk_size: int = 5_242_880
     upload_max_size: int = 3_000_000_000
+    wedding_admin_session_cookie: str = 'wedding_admin_session'
+    wedding_code_session_cookie: str = 'wedding_code_session'
+    wedding_admin_password_hash: str
 
     @property
     def access_token_hashes(self) -> dict[str, str]:
