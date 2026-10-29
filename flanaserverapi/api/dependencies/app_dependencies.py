@@ -35,10 +35,7 @@ async def get_app(
 
 def check_ip_not_blacklisted(app: Annotated[App, Depends(get_app)], ip: Annotated[str, Depends(get_ip)]) -> None:
     for system_info in app.blacklisted_system_infos:
-        if system_info.ip_geolocation is None:
-            continue
-
-        if system_info.ip_geolocation.ip == ip:
+        if system_info.ip_geolocation and system_info.ip_geolocation.ip == ip:
             raise HTTPException(status.HTTP_403_FORBIDDEN)
 
 
