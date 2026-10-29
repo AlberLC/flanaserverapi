@@ -1,3 +1,4 @@
+import asyncio
 import multiprocessing
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -16,9 +17,7 @@ from workers import workers_main
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[dict[str, Any]]:
-    await database_setup.initialize_database()
-
-    async with api_setup.initialize_api() as state:
+    async with database_setup.initialize_database(), api_setup.initialize_api() as state:
         yield state
 
 
@@ -32,5 +31,6 @@ app.include_router(websockets_router.router)
 app.add_middleware(LimitUploadSizeMiddleware, config.upload_max_size)
 
 if __name__ == '__main__':
+    asyncio.run(database_setup.ensure_schema())
     multiprocessing.Process(target=workers_main.run, daemon=True).start()
     uvicorn.run('main:app', host=config.api_host, port=config.api_port, reload=True)

@@ -1,3 +1,8 @@
+class DatabaseNotInitializedError(Exception):
+    def __init__(self) -> None:
+        super().__init__('Database is not initialized')
+
+
 class IncompleteUploadError(Exception):
     def __init__(self) -> None:
         super().__init__('Upload is incomplete')

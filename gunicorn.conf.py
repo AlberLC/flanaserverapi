@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import multiprocessing
 
@@ -5,6 +6,7 @@ import gunicorn.arbiter
 from uvicorn_worker import UvicornWorker
 
 from config import config as config_
+from database import database_setup
 from workers import workers_main
 
 
@@ -13,6 +15,7 @@ class WSUvicornWorker(UvicornWorker):
 
 
 def on_starting(_arbiter: gunicorn.arbiter.Arbiter) -> None:
+    asyncio.run(database_setup.ensure_schema())
     multiprocessing.Process(target=workers_main.run, daemon=True).start()
 
 
