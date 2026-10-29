@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 from typing import Annotated
 
@@ -63,7 +64,7 @@ def get_app_monitor(app_id: AppId, http_connection: HTTPConnection) -> AppMonito
 
 
 async def get_http_client_context(
-    encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
+    encrypted_body: Annotated[bytes, Body(media_type=mimetypes.types_map['.bin'])],
     ip: Annotated[str, Depends(get_ip)],
     session: Annotated[aiohttp.ClientSession, Depends(get_http_session)]
 ) -> ClientContext:

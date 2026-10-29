@@ -1,11 +1,13 @@
 import json
+import mimetypes
+import urllib.parse
 from pathlib import Path
 from typing import Annotated, Any
 
 import pymongo
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 
 from api import responses
 from api.dependencies.app_dependencies import (
@@ -20,6 +22,7 @@ from api.schemas.client_connection_summary import ClientConnectionSummary
 from config import config
 from custom_types import AppId
 from database.repositories.client_connection_repository import ClientConnectionRepository
+from enums import Environment
 from models.app import App
 from models.client_connections import ClientConnection
 from models.client_context import ClientContext
@@ -60,17 +63,28 @@ async def get_last_client_connections(
 @router.get(
     '/download',
     dependencies=[Depends(check_ip_not_blacklisted)],
+    response_model=None,
     response_class=FileResponse,
-    responses=responses.zip_responses
+    responses=responses.app_responses
 )
 @router.get(
     '/download/{release_type}',
     dependencies=[Depends(check_ip_not_blacklisted)],
-    response_class=FileResponse,
-    responses=responses.zip_responses
+    response_model=None,
+    response_class=Response,
+    responses=responses.app_responses
 )
-async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_path)]) -> FileResponse:
-    return FileResponse(compressed_path, filename=compressed_path.name)
+async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_path)]) -> FileResponse | Response:
+    if config.environment is Environment.DEVELOPMENT:
+        return FileResponse(compressed_path, filename=compressed_path.name)
+    else:
+        return Response(
+            headers={
+                'Content-Type': mimetypes.types_map[config.compressed_app_default_extension],
+                'Content-Disposition': f"attachment; filename*=utf-8''{urllib.parse.quote(compressed_path.name)}",
+                'X-Accel-Redirect': f'/internal/apps/{compressed_path.name}'
+            }
+        )
 
 
 @router.get('/version', response_class=PlainTextResponse)
@@ -120,7 +134,7 @@ async def get_license(
 
 @router.patch('/installation_paths', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 async def register_installation_paths(
-    encrypted_body: Annotated[bytes, Body(media_type=config.mime_types['bytes'])],
+    encrypted_body: Annotated[bytes, Body(media_type=mimetypes.types_map['.bin'])],
     client_connection_repository: Annotated[
         ClientConnectionRepository,
         Depends(get_repository(ClientConnectionRepository))
