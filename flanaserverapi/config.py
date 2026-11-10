@@ -121,6 +121,7 @@ class Config(DuckDNSSettings, IpGeolocationSettings, MongoSettings, PathSettings
     compressed_app_names: dict[str, dict[str, str]] = {
         'flanaarena': {'stem': 'FlanaArena', 'suffix': '.zip'},
         'flanacs': {'stem': 'FlanaCS', 'suffix': '.zip'},
+        'flanaphasmo': {'stem': 'FlanaPhasmo', 'suffix': '.zip'},
         'flanatrigo': {'stem': 'FlanaTrigo', 'suffix': '.zip'}
     }
     default_resolution: tuple[int, int] = (1280, 720)
