@@ -2,6 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel
 
+from config import config
 from custom_types import AppId
 from models.client_connections import ClientConnection
 
@@ -9,6 +10,7 @@ from models.client_connections import ClientConnection
 class ClientConnectionSummary(BaseModel):
     id: str
     app_id: AppId
+    app_name: str
     username: str | None = None
     hostname: str | None = None
     mac_address: str | None = None
@@ -44,6 +46,7 @@ class ClientConnectionSummary(BaseModel):
         return cls(
             id=str(client_connection.mongo_id),
             app_id=client_connection.app_id,
+            app_name=config.compressed_app_names[client_connection.app_id]['stem'],
             username=client_connection.system_info.username,
             hostname=client_connection.system_info.hostname,
             mac_address=client_connection.system_info.mac_address,

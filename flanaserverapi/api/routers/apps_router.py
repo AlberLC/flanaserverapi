@@ -24,9 +24,8 @@ from custom_types import AppId
 from database.repositories.client_connection_repository import ClientConnectionRepository
 from enums import Environment
 from models.app import App
-from models.client_connections import ClientConnection
 from models.client_context import ClientContext
-from services import license_service
+from services import client_connection_service, license_service
 from utils import crypto_utils, encoding_utils
 
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
@@ -108,12 +107,10 @@ async def get_license(
         Depends(get_repository(ClientConnectionRepository))
     ]
 ) -> dict[str, str]:
-    client_connection = ClientConnection(app_id=app_id, system_info=client_context.system_info)
-
-    await client_connection_repository.insert_one(
-        client_connection,
-        max_documents=config.max_client_connections,
-        max_documents_sort=('date',)
+    client_connection = await client_connection_service.register_client_connection(
+        app_id,
+        client_context.system_info,
+        client_connection_repository
     )
 
     license_ = license_service.generate_license(app, client_context)
@@ -130,6 +127,22 @@ async def get_license(
         'client_connection_id': str(client_connection.mongo_id),
         'encrypted_license': encoding_utils.bytes_to_base64(encrypted_license)
     }
+
+
+@router.post('/client-connections', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
+async def register_client_connection(
+    app_id: AppId,
+    client_context: Annotated[ClientContext, Depends(get_http_client_context)],
+    client_connection_repository: Annotated[
+        ClientConnectionRepository,
+        Depends(get_repository(ClientConnectionRepository))
+    ]
+) -> None:
+    await client_connection_service.register_client_connection(
+        app_id,
+        client_context.system_info,
+        client_connection_repository
+    )
 
 
 @router.patch('/installation_paths', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
