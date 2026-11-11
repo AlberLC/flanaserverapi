@@ -6,7 +6,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, Request, status
 from fastapi.responses import FileResponse as FastAPIFileResponse, HTMLResponse, RedirectResponse, Response
 
-from api import responses
 from api.dependencies.http_dependencies import get_access_token_hash
 from api.dependencies.repository_dependencies import get_repository
 from api.routers import uploads_router
@@ -17,6 +16,7 @@ from database.repositories.virtual_file_repository import VirtualFileRepository
 from enums import Environment
 from exceptions import InvalidCursorError
 from services import file_service
+from utils import openapi_utils
 
 router = APIRouter(prefix='/files', tags=['files'])
 router.include_router(uploads_router.router)
@@ -64,7 +64,12 @@ async def get_file(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
-@router.get('/{file_id}/content', response_model=None, response_class=Response, responses=responses.bytes_responses)
+@router.get(
+    '/{file_id}/content',
+    response_model=None,
+    response_class=Response,
+    responses=openapi_utils.get_response_schema('.bin')
+)
 async def get_file_content(
     file_id: str,
     physical_file_repository: Annotated[PhysicalFileRepository, Depends(get_repository(PhysicalFileRepository))],

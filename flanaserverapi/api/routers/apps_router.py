@@ -9,7 +9,6 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 
-from api import responses
 from api.dependencies.app_dependencies import (
     check_ip_not_blacklisted,
     get_app,
@@ -26,7 +25,7 @@ from enums import Environment
 from models.app import App
 from models.client_context import ClientContext
 from services import client_connection_service, license_service
-from utils import crypto_utils, encoding_utils
+from utils import crypto_utils, encoding_utils, openapi_utils
 
 router = APIRouter(prefix='/{app_id}', tags=['apps'])
 
@@ -64,14 +63,14 @@ async def get_last_client_connections(
     dependencies=[Depends(check_ip_not_blacklisted)],
     response_model=None,
     response_class=FileResponse,
-    responses=responses.app_responses
+    responses=openapi_utils.get_response_schema(config.compressed_app_default_extension)
 )
 @router.get(
     '/download/{release_type}',
     dependencies=[Depends(check_ip_not_blacklisted)],
     response_model=None,
     response_class=Response,
-    responses=responses.app_responses
+    responses=openapi_utils.get_response_schema(config.compressed_app_default_extension)
 )
 async def download(compressed_path: Annotated[Path, Depends(get_app_compressed_path)]) -> FileResponse | Response:
     if config.environment is Environment.DEVELOPMENT:
@@ -97,7 +96,11 @@ async def get_version(app: Annotated[App, Depends(get_app)]) -> PlainTextRespons
     return PlainTextResponse(app.version)
 
 
-@router.post('/license', include_in_schema=False)
+@router.post(
+    '/license',
+    include_in_schema=False,
+    openapi_extra=openapi_utils.get_binary_or_model_request_schema(ClientContext)
+)
 async def get_license(
     app_id: AppId,
     client_context: Annotated[ClientContext, Depends(get_http_client_context)],
@@ -129,7 +132,12 @@ async def get_license(
     }
 
 
-@router.post('/client-connections', status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
+@router.post(
+    '/client-connections',
+    status_code=status.HTTP_204_NO_CONTENT,
+    include_in_schema=False,
+    openapi_extra=openapi_utils.get_binary_or_model_request_schema(ClientContext)
+)
 async def register_client_connection(
     app_id: AppId,
     client_context: Annotated[ClientContext, Depends(get_http_client_context)],
